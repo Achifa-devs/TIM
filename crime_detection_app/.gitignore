@@ -1,0 +1,6 @@
+
+venvT
+__pycache__
+.idea
+*.pyc
+# YOLO-Weights

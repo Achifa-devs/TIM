@@ -1,0 +1,125 @@
+@media screen and (min-width: 1200px) {
+    *{
+        box-sizing: border-box;
+    }
+
+    html,body{
+        height: 100vh;
+        width: 100vw;
+        padding: 0;
+        margin: 0;
+    }
+
+    .inbox,.img-cnt{
+        width: calc(100% - 200px);
+        height: 100vh;
+        padding: 10px;
+        float: right;
+    }
+
+    .inbox-summary{
+        height: 70px;
+        width: 100%;
+        background-color: #f9f9f9;
+        margin: 5px 0px;
+        padding: 10px;
+    }
+
+    .inbox-summary section{
+        height: 100%;
+        width: 50%;
+        background-color: #f9f9f9;
+        margin: 5px 0px;
+        padding: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .inbox-body{
+        height: calc(100% - 80px);
+        width: 100%;
+        padding: 10px;
+        background-color: #ebebeb;
+        float: right;
+    }
+    .inbox-body ul{
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+    }
+    .inbox-body ul li{
+        height: auto;
+        border-radius: 5px;
+        color: #fff;
+        width: 100%;
+        display: flex;
+        margin-bottom: 10px;
+        cursor: pointer;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background-color: blueviolet;
+    }
+
+    .inbox-body ul li section{
+        /* height: 100%; */
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    
+    .upload-cnt{
+        height: 200px;
+        padding: 10px;
+        width: 50%;
+        border-radius: 5px;
+        /* border: 1px solid blueviolet; */
+    }
+
+    .video-cnt .video{
+        height: 100%;
+        border-radius: 5px;
+        width: 100%;
+        background-color: black;
+    }
+
+    .video-cnt{
+        height: 400px;
+        padding: 10px;
+        width: 50%;
+        border-radius: 5px;
+        /* border: 1px solid blueviolet; */
+    }
+
+    .body-cnt{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+    }
+
+    .btn-cnt{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+    }
+
+    label, button{
+        height: 40px;
+        width: 45%;
+        background-color: blueviolet; 
+        color: #fff;
+        outline: none;
+        border-radius: 5px;
+        border: none;
+        padding: 5px 5px;
+        text-align: center;
+        cursor: pointer;
+    }
+    
+}

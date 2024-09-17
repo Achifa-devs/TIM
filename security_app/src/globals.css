@@ -1,0 +1,192 @@
+
+*{
+    box-sizing: border-box;
+}
+
+html,body{
+    height: 100vh;
+    width: 100vw;
+    padding: 0;
+    margin: 0;
+}
+
+select,input{
+    width: 250px;
+    height: 40px;
+    padding: 10px;
+    border-radius: 5px;
+    outline: none;
+    background-color: #f9f9f9;
+    border: none;
+}
+textarea{
+    background: #f9f9f9;
+    max-height: 80px;
+    width: 100%;
+    outline: none;
+    border: none;
+    padding: 10px;
+}
+.form{
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    justify-content: space-between;
+}
+
+.form .first-child{
+    height: calc(100% - 20px);
+    width: 400px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* overflow: auto; */
+    justify-content: space-between;
+    background-color: #fff;
+}
+
+.form .last-child{
+    height: 100%;
+    width: calc(100% - 400px);
+    background-color: blueviolet;
+}
+
+.input-cnt{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    margin: 5px 0px;
+}
+.err-mssg{
+    font-size: small;
+    color: red;
+    margin: 0px 0px 10px 0px;
+}
+
+
+
+button{
+    height: 40px;
+    width: 280px;
+    background-color: blueviolet; 
+    color: #fff;
+    outline: none;
+    border-radius: 5px;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+}
+
+.aside{
+    height: 100vh;
+    width: 200px;
+    float: left;
+    background-color: blueviolet;
+}
+
+.aside div{
+    height: 60px;
+    width: 100%;
+    color: #fff;
+    padding: 10px;
+    font-size: 3vh;
+}
+
+.aside section{
+    height: calc(100% - 80px);
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-direction: column;
+}
+
+
+.aside section ul{
+    margin: 0;
+    padding: 10px;
+    flex-direction: column;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    
+}
+
+.aside section ul li{
+    margin: 8px 0px;
+    padding: 0;
+    color: #fff;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+
+    justify-content: flex-start;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    cursor: pointer;
+
+}
+
+.shift-overlay{
+    height: 100vh;
+    width: 100vw;
+    position: fixed;
+    top: 0;
+    display: none;
+    left: 0;
+    background-color: rgb(0,0,0);
+    background-color: rgb(0,0,0,.4);
+}
+
+#shift-overlay{
+    display: flex;
+}
+
+.err-cnt{
+    color: red;
+    font-size: small;
+}
+
+.img-frame{
+    height: 120px;
+    width: 280px;
+
+}
+
+.img-cnt-h{
+    height: 100%;
+    width: 40%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed #000;
+    float: left;
+}
+
+.img-info{ 
+    height: 100%;
+    width: 60%;
+    float: right;
+    padding: 10px;
+    text-align: right; 
+}
+
+.img-info ul{
+    position: relative;
+    list-style-type: lower-alpha;
+    margin: 0 0 0 10px;
+    padding: 0px;
+}
+
+.img-info ul li{
+    position: relative;
+    text-align: left;
+    float: left;
+    margin: 3px 0 3px 0;
+    font-size: 11px;
+}

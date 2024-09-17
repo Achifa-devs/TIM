@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Video</title>
+    <style>
+        body{
+            color:white;
+            margin:0px;
+            padding:0px;
+        }
+        header.feature-box.top{
+        background-color:black;
+        height:50px;
+        margin:0px;
+        padding:20px;
+        text-align:center;
+        }
+
+        .features{
+          background-color:black;
+          width: 450px;
+          height: 350px;
+          border-radius: 35px;
+          object-fit: contain;
+          margin:20px;
+        }
+
+        .form-container {
+            margin: 20px auto;
+            text-align: center;
+        }
+        .form-container label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        .form-container input[type="text"] {
+            width: 300px;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .form-container input[type="submit"] {
+            padding: 8px 20px;
+            border: none;
+            background-color: green;
+            color: black; /* Changed text color for better visibility */
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .form-container input[type="submit"]:hover {
+            background-color: darkgreen; /* Darker shade on hover */
+        }
+    </style>
+</head>
+<body>
+<header class="feature-box top">
+    <h1><strong>Security's Phone Number</strong></h1>
+</header>
+<header class="feature-box right">
+        <nav>
+            <ul>
+            <li><a href="/home">Home</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Form to add recipient phone number -->
+    <div class="form-container">
+            <form action="/add_phone_number" method="post">
+                <label for="entered_recipient_number">Add Recipient Phone Number:</label>
+                <input type="text" id="entered_recipient_number" name="entered_recipient_number" placeholder="Enter new recipient number">
+                <input type="submit" value="Add">
+            </form>
+        </div>
+
+</body>
+</html>
