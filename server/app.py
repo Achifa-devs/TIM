@@ -256,7 +256,7 @@ def allowed_file(filename):
 
 
 @api_blueprint.route("/upload/video", methods=["POST"])
-# @jwt_required()
+@jwt_required()
 def upload_video():
     file = request.files["file"]
     if not file.filename:
@@ -352,7 +352,7 @@ def register():
 
 
 @api_blueprint.route("/sign_out", methods=["POST"])
-# @jwt_required()
+@jwt_required()
 def sign_out():
     response = make_response(jsonify(message="Signed out successfully"), 200)
     response.set_cookie("access_token_cookie", "", expires=0)
@@ -362,7 +362,7 @@ def sign_out():
 
 # Shifts API Endpoints
 @api_blueprint.route("/admin/new-shift", methods=["POST"])
-# @admin_required()
+@admin_required()
 def new_shift():
     data = request.get_json()
     shift_name = data.get("shift_name")
@@ -382,7 +382,7 @@ def new_shift():
 
 
 @api_blueprint.route("/admin/shifts", methods=["GET"])
-# @admin_required()
+@admin_required()
 def get_shifts():
     personnel = get_current_user()
     shifts = Shift.query.filter_by(personnel_id=personnel.id).all()
