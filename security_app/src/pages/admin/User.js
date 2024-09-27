@@ -10,7 +10,7 @@ export default function Users() {
 
   useEffect(() => {
     // function fetchUserData() {
-      axios.get('http://localhost:8888/admin/users', {})
+      axios.get('http://localhost:8888/api/v1/admin/users', {})
       .then((response) => {
         setUserList(response.data)
       })

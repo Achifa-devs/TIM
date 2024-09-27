@@ -86,7 +86,7 @@ const Signup = () => {
             try {
                 
 
-                axios.post('http://localhost:8888/security-registration', {fname,lname,email,phone,pwd})
+                axios.post('http://localhost:8888/api/v1/security-registration', {fname,lname,email,phone,pwd})
                 .then((response) => {
                     // console.log('...',response)
                     if(response.data.bool){

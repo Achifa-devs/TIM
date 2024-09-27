@@ -12,7 +12,7 @@ export default function Shift() {
   useEffect(() => {
     // function fetchUserData() {
      if (info !== null) {
-       axios.get('http://localhost:8888/shift', {params: {
+       axios.get('http://localhost:8888/api/v1/shift', {params: {
          security_id: info?.security_id
        }})
        .then((response) => {
