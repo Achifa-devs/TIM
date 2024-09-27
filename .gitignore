@@ -10,6 +10,7 @@ __pycache__
 /server/*.pyc/
 /server/static/uploadedfiles/
 versions/
+server/notebooks/best.pt
 .env.server
 # /server/YOLO-Weights/
 
