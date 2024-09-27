@@ -86,7 +86,12 @@ const Signup = () => {
             try {
                 
 
-                axios.post('http://localhost:8888/api/v1/security-registration', {fname,lname,email,phone,pwd})
+                axios.post('http://localhost:8888/api/v1/security-registration', {fname,lname,email,phone,pwd}, 
+                { 
+                    headers: {
+                        'Authorization': `Bearer ${window.localStorage.getItem('security_token')}`
+                    }
+                })
                 .then((response) => {
                     // console.log('...',response)
                     if(response.data.bool){

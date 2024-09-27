@@ -8,7 +8,11 @@ export default function Summary() {
 
     useEffect(() => {
         // function fetchUserData() {
-        axios.get('http://localhost:8888/api/v1/admin/users', {})
+        axios.get('http://localhost:8888/api/v1/admin/users', {
+            headers: {
+                'Authorization': `Bearer ${window.localStorage.getItem('security_token')}`
+            }
+        })
         .then((response) => {
             setUserList(response.data)
         })

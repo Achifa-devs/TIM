@@ -11,7 +11,11 @@ export default function Shift() {
 
   useEffect(() => {
     // function fetchUserData() {
-      axios.get('http://localhost:8888/api/v1/admin/shifts', {})
+      axios.get('http://localhost:8888/api/v1/admin/shifts', {
+        headers: {
+          'Authorization': `Bearer ${window.localStorage.getItem('security_token')}`
+        } 
+      })
       .then((response) => {
         setShiftList(response.data)
       })

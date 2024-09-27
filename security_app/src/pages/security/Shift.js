@@ -13,8 +13,12 @@ export default function Shift() {
     // function fetchUserData() {
      if (info !== null) {
        axios.get('http://localhost:8888/api/v1/shift', {params: {
-         security_id: info?.security_id
-       }})
+        security_id: info?.security_id
+       },
+       headers: {
+          'Authorization': `Bearer ${window.localStorage.getItem('security_token')}`
+      }
+      })
        .then((response) => {
          setShiftList(response.data)
        })

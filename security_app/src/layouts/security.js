@@ -9,7 +9,11 @@ export default function SecurityLayout({children}) {
   let dispatch = useDispatch()
 
   function fetchUserData() {
-    axios.post('http://localhost:8888/api/v1/auth', {token: window.localStorage.getItem('security_token')})
+    axios.post('http://localhost:8888/auth', { 
+      headers: {
+        'Authorization': `Bearer ${window.localStorage.getItem('security_token')}`
+      }
+    })
     .then((response) => {
       // console.log(response)
         dispatch(setInfoTo(response.data.info))

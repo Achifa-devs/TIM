@@ -14,7 +14,13 @@ export default function AddShiftOverlay({users}){
 
    
    function uploadShift() {
-        axios.post('http://localhost:8888/api/v1/admin/new-shift', {period,duration,from,to,security_id}) 
+        axios.post('http://localhost:8888/api/v1/admin/new-shift', 
+        {period,duration,from,to,security_id},
+        {
+            headers: {
+                'Authorization': `Bearer ${window.localStorage.getItem('security_token')}`
+            }
+        }) 
         .then((response) => {
             // console.log('...',response)
             if(response.data){
