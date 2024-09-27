@@ -5,6 +5,12 @@
 /crime_detection_app/*.pyc/
 # /crime_detection_app/YOLO-Weights/
 
+venv
+__pycache__
+.env
+*.mp4
+versions
+.env.server
 
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
