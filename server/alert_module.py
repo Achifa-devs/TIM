@@ -1,5 +1,6 @@
 import requests
 
+
 def send_sms_alert(message):
     api_url = "https://app.smartsmssolutions.com/io/api/client/v1/sms/"
 
@@ -19,6 +20,4 @@ def send_sms_alert(message):
     else:
         print(f"Error sending SMS alert: {response.text}")
         print("Failed to send SMS. Status code")
-        #print("Response:", response.text)
-
-
+        # print("Response:", response.text)
