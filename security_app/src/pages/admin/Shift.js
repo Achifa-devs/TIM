@@ -11,7 +11,7 @@ export default function Shift() {
 
   useEffect(() => {
     // function fetchUserData() {
-      axios.get('http://localhost:8888/api/v1/admin/shifts', {})
+      axios.get('http://localhost:5000/api/v1/admin/shifts', {})
       .then((response) => {
         setShiftList(response.data)
       })

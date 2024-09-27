@@ -11,6 +11,7 @@
     "@testing-library/user-event": "^13.5.0",
     "@tinymce/tinymce-react": "^5.0.1",
     "assert": "^2.1.0",
+    "axios": "^1.7.7",
     "buffer": "^6.0.3",
     "dayjs-greet": "^1.1.2",
     "draft-js": "^0.11.7",
