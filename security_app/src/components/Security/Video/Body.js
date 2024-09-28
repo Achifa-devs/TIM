@@ -1,19 +1,39 @@
 import React, { useState } from 'react'
+import api from '../../../services/api'
 
 export default function Body() {
 
   let [video, setVideo] = useState('');
+  let [detections, setDetections] = useState([]); 
 
   function uploadVideo(e) {
-    let file = e.target.files;
+    let file = e.target.files[0];
 
-    let reader = new FileReader()
-    reader.onload=(result => {
-      setVideo(reader.result)
-      console.log(reader.result)
+    // Create FormData and send to Flask backend
+    let formData = new FormData();
+    formData.append('video', file);
+
+    api.post('/process_video/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
     })
+    .then(response => {
+      setDetections(response.data);
+      console.log(response.data);
 
-    reader.readAsDataURL(file[0])
+      let reader = new FileReader()
+      reader.onload=(result => {
+        setVideo(reader.result)
+        // console.log(reader.result)
+      })
+      reader.readAsArrayBuffer(response.data.frames)
+    })
+    .catch(error => {
+      console.error("There was an error uploading the video!", error);
+    });
+
+
     // console.log(file)
   }
 

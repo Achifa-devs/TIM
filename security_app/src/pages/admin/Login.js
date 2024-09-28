@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import '../../globals.css'
-import axios from "axios"
+import api from '../../services/api'
 
 const Login = () => {
 
@@ -8,7 +8,7 @@ const Login = () => {
 
 
     let [email, setEmail] = useState('')
-    let [pwd, setPwd] = useState('')
+    let [password, setpassword] = useState('')
     const validation = useRef(false); 
 
 
@@ -27,18 +27,12 @@ const Login = () => {
             )
             e.target.disabled = true;
 
-            axios.post('http://localhost:8888/api/v1/admin-login', 
-            {email,pwd},
-            {
-                headers: {
-                    'Authorization': `Bearer ${window.localStorage.getItem('security_token')}`
-                }
-            }
-            )
+            api.post('/admin/login', {email,password})
             .then((response) => {
                 // console.log('...',response)
                 if(response.data.bool){
-                    window.localStorage.setItem('admin_token', response.data.token)
+                    window.localStorage.setItem('accessToken', response.data.access_token)
+                    window.localStorage.setItem('refreshToken', response.data.refresh_token)
                     window.location.href = '/admin/'
                 }else{
                     let check = document.querySelector('.err-cnt').querySelector('.err-mssg');
@@ -177,7 +171,7 @@ const Login = () => {
                             <input onInput={e => setEmail(e.target.value)} name='email' type="text" placeholder="Email" />
                         </div>
                         <div className="input-cnt">
-                            <input onInput={e => setPwd(e.target.value)} type="password" placeholder="Password" />
+                            <input onInput={e => setpassword(e.target.value)} type="password" placeholder="Password" />
                         </div>
                         
                         

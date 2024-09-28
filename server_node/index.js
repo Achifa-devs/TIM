@@ -34,7 +34,7 @@ app.listen(process.env.PORT,_ => console.log('app is live @',process.env.PORT));
 // io(server, {cors: {origin: '*'}}).on('connection',(socket) => {});
  
 
-app.post("/security-registration", parser, async(req,res) => {
+app.post("/signup", parser, async(req,res) => {
 
   let {fname,lname,email,phone,pwd} = req.body;
 

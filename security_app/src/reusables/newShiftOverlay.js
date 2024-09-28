@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react"
-import axios from "axios"
+import api from '../services/api'
 
 export default function AddShiftOverlay({users}){
 //    let [period,setPeriod] = useState('morning')
 //    let [duration,setDuration] = useState('2')
+   let [shift_name,set_shift_name] = useState('')
    let [start_time,set_start_time] = useState('00:00')
    let [end_time,set_end_time] = useState('00:00')
    let [personnel_id, set_personnel_id] = useState(null);
@@ -13,17 +14,11 @@ export default function AddShiftOverlay({users}){
    }, [users])
 
    function uploadShift() {
-        axios.post('http://localhost:8888/api/v1/admin/new-shift', 
-        {start_time,end_time,personnel_id},
-        {
-            headers: {
-                'Authorization': `Bearer ${window.localStorage.getItem('security_token')}`
-            }
-        }) 
+        api.post('/admin/new-shift', {shift_name,start_time,end_time,personnel_id}) 
         .then((response) => {
             // console.log('...',response)
             if(response.data){
-                window.localStorage.setItem('admin_token', response.data.token)
+                window.localStorage.setItem('accessToken', response.data.access_token)
 
                 alert('Shift Created')
                 let elem = document.querySelector('.shift-overlay');

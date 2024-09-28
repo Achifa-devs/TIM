@@ -1,6 +1,6 @@
 import '../../globals.css';
 import { useEffect, useRef, useState } from 'react';
-import axios from "axios"
+import api from "../../services/api"
 import upload_svg from '../../assets/upload-svgrepo-com (1).svg'
 const Signup = () => {
 
@@ -8,7 +8,7 @@ const Signup = () => {
     let [lname, setLname] = useState('')
     let [email, setEmail] = useState('')
     let [phone, setPhone] = useState('')
-    let [pwd, setPwd] = useState('')
+    let [password, setpassword] = useState('')
     let [photo, setphoto] = useState();
     let [photo_validate, setphoto_validate] = useState();
 
@@ -19,7 +19,7 @@ const Signup = () => {
         fname: false,
         lname: false,
         email: false,
-        pwd: false,
+        password: false,
         phn: false
     })
 
@@ -84,20 +84,14 @@ const Signup = () => {
             )
             // e.currentTarget.disabled = true;
             try {
-                
-
-                axios.post('http://localhost:8888/api/v1/security-registration', {fname,lname,email,phone,pwd}, 
-                { 
-                    headers: {
-                        'Authorization': `Bearer ${window.localStorage.getItem('security_token')}`
-                    }
-                })
+            
+                api.post('/signup', {fname,lname,email,phone,password})
                 .then((response) => {
-                    // console.log('...',response)
+                    console.log('...',response);
                     if(response.data.bool){
-                        window.localStorage.setItem('security_token', response.data.token)
-
-                        window.location.href = '/'
+                        // window.localStorage.setItem('accessToken', response.data.access_token)
+                        // After Signup, redirect to login page
+                        window.location.href = '/login'
                     }else{
                         if(response.data.data === 'duplicate email'){
                             console.log(response.data)
@@ -193,7 +187,7 @@ const Signup = () => {
 
                     let list =errs.filter(item => item.mssg !== '')
 
-                    list.length > 0 ? book.current.pwd = false : book.current.pwd = true
+                    list.length > 0 ? book.current.password = false : book.current.password = true
                 }
             }else if(item.type === 'tel'){
                 if(item.name === 'phone'){
@@ -301,7 +295,7 @@ const Signup = () => {
                         </div>
 
                         <div className="input-cnt">
-                            <input name='password' onInput={e=> setPwd(e.target.value)} type="password" placeholder="Password" />
+                            <input name='password' onInput={e=> setpassword(e.target.value)} type="password" placeholder="Password" />
                         </div>
 
                         <br/> 
