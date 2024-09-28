@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import '../../globals.css'
-import axios from "axios"
+import api from '../../services/api'
 
 const Login = () => {
 
@@ -27,11 +27,12 @@ const Login = () => {
             )
             e.target.disabled = true;
 
-            axios.post('http://localhost:5000/api/v1/admin-login', {email,password})
+            api.post('/admin/login', {email,password})
             .then((response) => {
                 // console.log('...',response)
                 if(response.data.bool){
-                    window.localStorage.setItem('admin_token', response.data.access_token)
+                    window.localStorage.setItem('accessToken', response.data.access_token)
+                    window.localStorage.setItem('refreshToken', response.data.refresh_token)
                     window.location.href = '/admin/'
                 }else{
                     let check = document.querySelector('.err-cnt').querySelector('.err-mssg');

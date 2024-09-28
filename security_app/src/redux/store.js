@@ -5,7 +5,6 @@ let store = configureStore({
   reducer: {
     info: info
   }
-
 })
 
 

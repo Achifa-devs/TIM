@@ -1,6 +1,7 @@
 import React from 'react'
 import AddShiftOverlay from '../../../reusables/newShiftOverlay'
 import myImg from '../../../assets/WhatsApp Image 2023-08-10 at 19.54.34.jpg'
+
 export default function Summary({info}) {
 
   return (

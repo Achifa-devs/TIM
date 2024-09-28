@@ -3,15 +3,14 @@ import Summary from '../../components/Admin/Shift/Summary'
 import '../../components/Admin/Shift/styles/xxl.css'
 import Body from '../../components/Admin/Shift/Body'
 import AdminLayout from '../../layouts/admin'
-import axios from "axios"
-
+import api from '../../services/api'
 
 export default function Shift() {
   let [shiftList, setShiftList] = useState([])
 
   useEffect(() => {
     // function fetchUserData() {
-      axios.get('http://localhost:5000/api/v1/admin/shifts', {})
+      api.get('/admin/shifts', {})
       .then((response) => {
         setShiftList(response.data)
       })

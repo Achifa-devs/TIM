@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import AddShiftOverlay from '../../../reusables/newShiftOverlay';
-import axios from "axios"
+import api from '../../../services/api'
+
 
 export default function Body({users}) {
 
@@ -11,7 +12,7 @@ export default function Body({users}) {
 
     useEffect(() => {
       // function fetchUserData() {
-      axios.get('http://localhost:5000/api/v1/admin/users', {})
+      api.get('/admin/users', {})
       .then((response) => {
           setUserList(response.data)
       })

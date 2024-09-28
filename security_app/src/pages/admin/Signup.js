@@ -1,6 +1,6 @@
 import '../../globals.css';
 import { useEffect, useRef, useState } from 'react';
-import axios from "axios"
+import api from "../../services/api"
 import upload_svg from '../../assets/upload-svgrepo-com (1).svg'
 const Signup = () => {
 
@@ -86,11 +86,11 @@ const Signup = () => {
             try {
                 
 
-                axios.post('http://localhost:5000/api/v1/admin-registration', {fname,lname,email,phone,password})
+                api.post('/admin/registration', {fname,lname,email,phone,password})
                 .then((response) => {
                     // console.log('...',response)
                     if(response.data.bool){
-                        window.localStorage.setItem('admin_token', response.data.access_token)
+                        window.localStorage.setItem('accessToken', response.data.access_token)
 
                         window.location.href = '/admin/'
                     }else{
