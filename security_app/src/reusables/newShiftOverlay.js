@@ -2,11 +2,11 @@ import { useEffect, useState } from "react"
 import axios from "axios"
 
 export default function AddShiftOverlay({users}){
-   let [period,setPeriod] = useState('morning')
-   let [duration,setDuration] = useState('2')
-   let [from,setFrom] = useState('00:00')
-   let [to,setTo] = useState('00:00')
-   let [security_id, set_security_id] = useState(null);
+//    let [period,setPeriod] = useState('morning')
+//    let [duration,setDuration] = useState('2')
+   let [start_time,set_start_time] = useState('00:00')
+   let [end_time,set_end_time] = useState('00:00')
+   let [personnel_id, set_personnel_id] = useState(null);
 
    useEffect(() => {
      console.log(users)
@@ -15,7 +15,7 @@ export default function AddShiftOverlay({users}){
    
    function uploadShift() {
         axios.post('http://localhost:8888/api/v1/admin/new-shift', 
-        {period,duration,from,to,security_id},
+        {start_time,end_time,personnel_id},
         {
             headers: {
                 'Authorization': `Bearer ${window.localStorage.getItem('security_token')}`
@@ -42,7 +42,7 @@ export default function AddShiftOverlay({users}){
                 <h4 className="" style={{padding:'10px', margin: '0', borderBottom: '1px solid #efefef', height: '50px', width: '100%', background: '#fff', fontWeight: '600', display: 'flex', alignItems: 'center', color: 'blueviolet', justifyContent: 'space-between'}}>Create New Shift</h4>
 
                 <section style={{display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center', background: '#efefef', height: '70%', padding: '10px'}}>
-                    <div className="input-cnt">
+                    {/* <div className="input-cnt">
                         <select onClick={e=>setPeriod(e.target.value)} name="" id="">
                             <option value="">Select Shift</option>
                             <option value="morning">Morning Shift</option>
@@ -59,21 +59,21 @@ export default function AddShiftOverlay({users}){
                             <option value="4">4 hours</option>
                             <option value="5">5 hours</option>
                         </select>
-                    </div>
+                    </div> */}
 
                     <div className="input-cnt">
-                        <label style={{height: 'auto', width: 'auto', background: 'transparent'}} htmlFor=""><small>From</small></label>
-                        <input onInput={e => setFrom(e.target.value)} type="time" name="" id="" />
+                        <label style={{height: 'auto', width: 'auto', background: 'transparent', color: '#000'}} htmlFor=""><small>Start Tme</small></label>
+                        <input onInput={e => set_start_time(e.target.value)} type="time" name="" id="" />
                     </div>
                     <div className="input-cnt">
-                        <label style={{height: 'auto', width: 'auto', background: 'transparent'}} htmlFor=""><small>To</small></label>
-                        <input onInput={e => setTo(e.target.value)} type="time" name="" id="" />
+                        <label style={{height: 'auto', width: 'auto', background: 'transparent', color: '#000'}} htmlFor=""><small>End Time</small></label>
+                        <input onInput={e => set_end_time(e.target.value)} type="time" name="" id="" />
                     </div>
 
 
                     <div className="input-cnt">
                         <select onInput={e => {
-                            set_security_id(e.target.value)
+                            set_personnel_id(e.target.value)
                         }} name="" id="">
                             <option value="">Select Security</option>
                             {

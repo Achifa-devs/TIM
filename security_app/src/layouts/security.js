@@ -24,16 +24,16 @@ export default function SecurityLayout({children}) {
     })
   }
 
-  useEffect(() => {
-    if(window.location.pathname.split('/').splice(-1)[0] !== 'login' && window.location.pathname.split('/').splice(-1)[0] !== 'signup'){
-      // alert()
-      if(window.localStorage.getItem('security_token') !== null && window.localStorage.getItem('security_token') !== '' && window.localStorage.getItem('security_token') !== 'null' && window.localStorage.getItem('security_token') !== undefined && window.localStorage.getItem('security_token') !== 'undefined'){
-        fetchUserData()
-      }else{
-        window.location.href = '/login'
-      }
-    }
-  }, [])
+  // useEffect(() => {
+  //   if(window.location.pathname.split('/').splice(-1)[0] !== 'login' && window.location.pathname.split('/').splice(-1)[0] !== 'signup'){
+  //     // alert()
+  //     if(window.localStorage.getItem('security_token') !== null && window.localStorage.getItem('security_token') !== '' && window.localStorage.getItem('security_token') !== 'null' && window.localStorage.getItem('security_token') !== undefined && window.localStorage.getItem('security_token') !== 'undefined'){
+  //       fetchUserData()
+  //     }else{
+  //       window.location.href = '/login'
+  //     }
+  //   }
+  // }, [])
   return (
     <>
 
