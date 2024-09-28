@@ -6,6 +6,7 @@ venvT
 server/venv
 /server/__pycache__/
 __pycache__
+app.log
 /server/.idea/
 /server/*.pyc/
 /server/static/uploadedfiles/
@@ -34,7 +35,7 @@ server/notebooks/best.pt
 /security_app/.env.development.local/
 /security_app/.env.test.local/
 /security_app/.env.production.local/
-
+.env.client
 /security_app/npm-debug.log*/
 /security_app/yarn-debug.log*/
 /security_app/yarn-error.log*/

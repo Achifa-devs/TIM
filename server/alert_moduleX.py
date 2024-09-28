@@ -19,7 +19,8 @@ def send_sms_alert(class_name, phone_number):
     response = requests.post(api_url, data=params)
 
     if response.status_code == 200:
-        from server.app import Alert, Personnel
+        from app import Alert, Personnel
+        
         personnel = Personnel.query.filter(phone_number=phone_number).first()
         Alert(message=message, personnel_id=personnel.id).create()
         print("SMS alert sent successfully!")

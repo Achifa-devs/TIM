@@ -42,6 +42,7 @@ def video_detection(path_x, callback_function=None):
             break
         frame_number = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
         timestamp = datetime.now()
+        detections = []
 
         results = model(img, stream=True)
         for r in results:
@@ -71,14 +72,16 @@ def video_detection(path_x, callback_function=None):
                     thickness=1,
                     lineType=cv2.LINE_AA,
                 )
-
+                detections.append(class_name)
+                
                 # Call the callback function if it's not None
                 if callback_function:
-                    callback_function(class_name)
+                    for class_name in set(detections):
+                        callback_function(class_name)
 
-                    from server.app import ViolenceDetection, Personnel
+                    from app import Detection, Personnel
 
-                    ViolenceDetection(
+                    Detection(
                         detected_classname=class_name,
                         frame_number=frame_number,
                         personnel_id=Personnel.personnel_on_active_shift(),
