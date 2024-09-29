@@ -4,10 +4,12 @@ import api from '../../../services/api'
 export default function Body() {
 
   let [video, setVideo] = useState('');
+  let [btntxt, setbtntxt] = useState('Upload video');
   let [detections, setDetections] = useState([]); 
 
   function uploadVideo(e) {
     let file = e.target.files[0];
+    setbtntxt('Processing...')
 
     // Create FormData and send to Flask backend
     let formData = new FormData();
@@ -21,15 +23,19 @@ export default function Body() {
     .then(response => {
       setDetections(response.data);
       console.log(response.data);
+      setbtntxt('Upload video')
+
 
       let reader = new FileReader()
       reader.onload=(result => {
         setVideo(reader.result)
         // console.log(reader.result)
       })
-      reader.readAsArrayBuffer(response.data.frames)
+      reader.readAsDataURL(file)
     })
     .catch(error => {
+      setbtntxt('Upload video')
+
       console.error("There was an error uploading the video!", error);
     });
 
@@ -65,7 +71,7 @@ export default function Body() {
             </div>
             <div className='btn-cnt'>
               <label htmlFor="file">
-                Upload Video
+                {btntxt}
               </label>
               <button onClick={startLiveCam}>
                 Use Live Camera/CCTV

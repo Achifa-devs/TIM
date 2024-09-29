@@ -13,7 +13,6 @@ export default function AddShiftOverlay({users}){
      console.log(users)
    }, [users])
 
-   
    function uploadShift() {
         api.post('/admin/new-shift', {shift_name,start_time,end_time,personnel_id}) 
         .then((response) => {
@@ -31,6 +30,7 @@ export default function AddShiftOverlay({users}){
             
         })
    }
+
     return(
         <>
             <form style={{height: '500px', background: '#fff', width: '300px', borderRadius: '5px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '10px'}}>
