@@ -9,22 +9,31 @@ const api = axios.create({
 const openPaths = ['/login', '/signup'];
 
 
-async function refreshAccessToken() {
+ async function refreshAccessToken() {
   console.log('Refreshing access token...');
-  let response = await api.post('/auth/refresh', { refresh_token: window.localStorage.getItem('refreshToken') });
-  let { accessToken } = response.data;
-  window.localStorage.setItem('accessToken', accessToken);
-  console.log('Access token refreshed successfully!');
-  return accessToken;
+  await api.post('/auth/refresh', {
+    headers: {'Authorization': `Bearer ${window.localStorage.getItem('refreshToken')}`}
+  })
+    .then(response => {
+      console.log(response.data)
+      let { access_token } = response.data;
+      window.localStorage.setItem('accessToken', access_token);
+      console.log('Access token refreshed successfully!');
+      return access_token;
+    })
+    .catch(error => {
+      console.log(error);
+    });  
 }
 
-api.interceptors.request.use(async (config) => {
+
+api.interceptors.request.use( async (config) => {
   if (openPaths.some(path => config.url.includes(path))) {
     return config; // Bypass the interceptor logic
   }
 
   let token = window.localStorage.getItem('accessToken');
-  console.log(token)
+  // console.log(token, 'this is the token')
   if (token) {
     let decodedToken = jwtDecode(token);
     let currentTime = Date.now() / 1000;
@@ -56,7 +65,7 @@ api.interceptors.response.use((response) => {
   console.log(error.response.data, error.response)
   if (error.response.status === 401 && !originalRequest._retry) {
     originalRequest._retry = true;
-    if (error.response.data.message === 'Token expired' || error.response.data.message === 'Invalid token') {
+    if (error.response.data.msg === 'Token has expired') {
       try {
         let accessToken = await refreshAccessToken();
         axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
@@ -65,7 +74,7 @@ api.interceptors.response.use((response) => {
         console.log(error)
       }
     }
-  } else if (error.response.status === 422) {
+  } else {
     window.location.href = '/login'
     window.localStorage.removeItem('accessToken');
     window.localStorage.removeItem('refreshToken');

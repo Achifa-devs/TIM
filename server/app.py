@@ -11,7 +11,6 @@ from flask import (
     make_response,
     request,
     session,
-    render_template,
 )
 from flask_cors import CORS
 from flask_jwt_extended import (
@@ -26,14 +25,14 @@ from flask_jwt_extended import (
 )
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
-from flask_restx import Api
 from flask_sqlalchemy import SQLAlchemy
+import numpy as np
 from sqlalchemy import UniqueConstraint, and_
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from alert_moduleX import send_sms_alert
+from alert_moduleX import send_detection_alert
 
 from Yolo_video import video_detection
 
@@ -45,7 +44,7 @@ app.config["UPLOAD_FOLDER"] = "static/uploadedfiles"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///TIMSec.db"
 app.config["JWT_TOKEN_LOCATION"] = ["headers", "cookies"]
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(seconds=36000)
-app.config["ALLOWED_EXTENSIONS"] = {"mp4", "avi", "mov"}  # Set allowed file extensions
+app.config["ALLOWED_EXTENSIONS"] = {"mp4", "png", "mov", "webm"}  # Set allowed file extensions
 
 CORS(
     app,
@@ -57,38 +56,17 @@ db = SQLAlchemy(app)
 ma = Marshmallow(app)
 migrate = Migrate(app, db, "instance/migrations")
 jwt = JWTManager(app)
+
 logging.basicConfig(level=logging.DEBUG)
-
-# Set up logging
-logging.basicConfig(level=logging.DEBUG)  # Set the logging level
-
-# Create a logger for the Flask application
+logging.basicConfig(level=logging.DEBUG)  
 logger = logging.getLogger("app")
-
-# Create a file handler for the logger
 file_handler = logging.FileHandler("app.log")
 file_handler.setLevel(logging.DEBUG)
-
-# Create a formatter for the logger
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 file_handler.setFormatter(formatter)
+logger.addHandler(file_handler) 
 
-# Add the file handler to the logger
-logger.addHandler(file_handler)  # Add the file handler to the logger object
 
-api = Api(
-    app,
-    version="1.0",
-    title="TIMSec API",
-    description="TIMSec API Documentation",
-    authorizations={
-        "Bearer auth": {
-            "type": "apiKey",
-            "in": "header",
-            "name": "Authorization",
-        }
-},
-)
 api_blueprint = Blueprint("api_blueprint", __name__, url_prefix="/api/v1")
 
 
@@ -230,7 +208,7 @@ class Shift(db.Model, Abstract):
     )
 
     def __repr__(self):
-        return f"Shift(shift_name='{self.shift_name}', start_time='{self.start_time}', end_time='{self.end_time}')"
+        return f"Shift(shift_name='{self.shift_name}', duration='{self.end_time - self.start_time}')"
 
 
 class ShiftSchema(ma.SQLAlchemyAutoSchema):
@@ -243,7 +221,6 @@ with app.app_context():
     db.create_all()
 
 
-@api_blueprint.route("/auth", methods=["POST"])
 @api_blueprint.route("/profile", methods=["GET"])
 @jwt_required()
 def get_current_personnel():
@@ -252,15 +229,8 @@ def get_current_personnel():
     return jsonify(info=personnel), 200
 
 
-# Rendering the Webcam Rage
-# Now lets make a Webcam page for the application
-# Use 'app.route()' method, to render the Webcam page at "/webcam"
-@api_blueprint.route("/webcam", methods=["GET", "POST"])
-def webcam_capture():
-    session.clear()
-    return render_template("webcamfeed.html")
 
-
+# Video API Endpoints
 def allowed_file(filename):
     return (
         "." in filename
@@ -269,18 +239,26 @@ def allowed_file(filename):
     
 
 def generate_frames(path_x):
-    yolo_output = video_detection(path_x, callback_function=send_sms_alert)
+    yolo_output = video_detection(path_x)
     for detection_ in yolo_output:
-        ref, buffer = cv2.imencode(".jpg", detection_)
-
+        ref, buffer = cv2.imencode(".jpeg", detection_)
         frame = buffer.tobytes()
-        yield b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
+        return b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
+
+
+# @admin_required()
+@api_blueprint.route("/video_feed", methods=["GET"])
+def process_video_feed():
+    return Response(
+        generate_frames(session.get('video_path', None)),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+    )
 
 
 @api_blueprint.route("/process_video/upload", methods=["POST"])
-@jwt_required()
+# @jwt_required()
 def process_video_upload():
-    file = request.files.get("video")
+    file = request.files.get("frame")
     if not file.filename:
         return jsonify(error="No file selected"), 400
     if file and allowed_file(file.filename):
@@ -292,10 +270,11 @@ def process_video_upload():
             file_name=file.filename, file_path=video_path, uploaded_at=datetime.now()
         )
         try:
-            new_upload.create()
-            x = generate_frames(video_path)
-            print(x)
-            return jsonify(message="File uploaded successfully", frames=list(x)), 201
+            # new_upload.create()
+            return Response(
+            generate_frames(video_path),
+            mimetype="multipart/x-mixed-replace; boundary=frame",
+        )
         except IntegrityError as e:
             db.session.rollback()
             return (
@@ -340,6 +319,8 @@ def get_personnels():
     return jsonify(personnel_list), 200
 
 
+
+# Authentication API Endpoints
 @api_blueprint.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
@@ -347,9 +328,7 @@ def login():
     password = data.get("password")
     personnel = Personnel.query.filter_by(email_address=email_address).first()
     if personnel and check_password_hash(personnel.password, password):
-        additional_claims = {
-            "level": "admin" if personnel.level == "admin" else "staff"
-        }
+        additional_claims = {"level": personnel.level}
         access_token = create_access_token(
             email_address, additional_claims=additional_claims
         )
@@ -408,6 +387,7 @@ def sign_out():
 @api_blueprint.route("/auth/refresh", methods=["POST"])
 @jwt_required(refresh=True)
 def refresh_token():
+    print(f'refreshing token for user: {get_jwt_identity()}')
     current_user = get_jwt_identity()
     level = current_user.level
     additional_claims = {"level": level}
@@ -415,6 +395,8 @@ def refresh_token():
         identity=current_user, additional_claims=additional_claims
     )    
     return jsonify(access_token=access_token), 200
+
+
 
 
 # Shifts API Endpoints
@@ -491,27 +473,6 @@ def delete_shift(id):
         return jsonify(), 204
     else:
         return jsonify(error="Shift not found"), 404
-
-
-# @admin_required()
-@api_blueprint.route("/videos", methods=["GET"])
-def video():
-    # return Response(generate_frames(path_x='static/uploadedfiles/'), mimetype='multipart/x-mixed-replace; boundary=frame')
-    return Response(
-        generate_frames(path_x=session.get("video_path", None)),
-        mimetype="multipart/x-mixed-replace; boundary=frame",
-    )
-
-
-# @admin_required()
-# To display the Output Video on Webcam page
-@api_blueprint.route("/webcam")
-def webcam():
-    # return Response(generate_frames(path_x = session.get('video_path', None),conf_=round(float(session.get('conf_', None))/100,2)),mimetype='multipart/x-mixed-replace; boundary=frame')
-    return Response(
-        generate_frames(path_x=0),
-        mimetype="multipart/x-mixed-replace; boundary=frame",
-    )
 
 
 app.register_blueprint(api_blueprint)
