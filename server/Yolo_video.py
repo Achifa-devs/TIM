@@ -85,3 +85,41 @@ def video_detection(path_x, callback_function=None):
         
     cap.release()
     cv2.destroyAllWindows()
+
+
+def process_uploaded_video(video_path):
+    cap = cv2.VideoCapture(video_path)
+    model = YOLO("./notebooks/best.pt")  # Custom YOLO model
+
+    class_names = ["Burglary", "Fighting", "Robbery"]
+    
+    while cap.isOpened():
+        success, frame = cap.read()
+        if not success:
+            break
+        
+        # YOLO detection
+        results = model(frame, stream=True)
+        for r in results:
+            boxes = r.boxes
+            for box in boxes:
+                # Bounding box coordinates
+                x1, y1, x2, y2 = int(box.xyxy[0][0]), int(box.xyxy[0][1]), int(box.xyxy[0][2]), int(box.xyxy[0][3])
+                conf = math.ceil((box.conf[0] * 100)) / 100
+                cls = int(box.cls[0])
+                class_name = class_names[cls]
+                
+                # Draw rectangle and text on the frame
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 255), 3)
+                label = f"{class_name} {conf}"
+                cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+
+        # Encode the frame to JPEG format
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+
+        # Return the frame in a multipart response
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+    
+    cap.release()

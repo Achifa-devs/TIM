@@ -26,7 +26,6 @@ from flask_jwt_extended import (
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-import numpy as np
 from sqlalchemy import UniqueConstraint, and_
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
@@ -34,7 +33,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from alert_moduleX import send_detection_alert
 
-from Yolo_video import video_detection
+from Yolo_video import video_detection, process_uploaded_video
 
 
 app = Flask(__name__)
@@ -248,17 +247,17 @@ def generate_frames(path_x):
 
 # @admin_required()
 @api_blueprint.route("/video_feed", methods=["GET"])
-def process_video_feed():
+def video_feed():
     return Response(
-        generate_frames(session.get('video_path', None)),
+        process_uploaded_video(0),
         mimetype="multipart/x-mixed-replace; boundary=frame",
     )
 
 
 @api_blueprint.route("/process_video/upload", methods=["POST"])
 # @jwt_required()
-def process_video_upload():
-    file = request.files.get("frame")
+def video_upload():
+    file = request.files.get("video")
     if not file.filename:
         return jsonify(error="No file selected"), 400
     if file and allowed_file(file.filename):
@@ -272,8 +271,8 @@ def process_video_upload():
         try:
             # new_upload.create()
             return Response(
-            generate_frames(video_path),
-            mimetype="multipart/x-mixed-replace; boundary=frame",
+            process_uploaded_video(video_path),
+            mimetype="multipart/x-mixed-replace; boundary=frame"
         )
         except IntegrityError as e:
             db.session.rollback()
