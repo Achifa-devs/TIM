@@ -64,9 +64,12 @@ export default function Body() {
     <>
       <div className="video-upload-body">
         <section className='body-cnt'>
+
           <section className='video-cnt'>
+            <small><b>Upload a Video for Detection</b></small>
+
             <div className='video'>
-              <video controls style={{height: '80%', width: '80%'}} autoPlay src={video}></video>
+              <video controls style={{height: '100%', width: '100%'}} autoPlay src={video}></video>
             </div>
             <div className="input-cnt">
               <input onChange={uploadVideo} accept='video/*' style={{display: 'none'}} type="file" name="file" id="file" />
@@ -75,8 +78,7 @@ export default function Body() {
               <img src='' className='feed' alt="Detections"/>
             </div>
             <div>
-              <h2>Upload a Video for Detection</h2>
-              <input type="file" accept="video/*" onChange={uploadVideo} />
+              {/* <input type="file" accept="video/*" onChange={uploadVideo} /> */}
               {videoURL && (
                 <div>
                   <h3>Detected Video</h3>
