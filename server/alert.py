@@ -1,7 +1,7 @@
 import requests, os
 
 
-def send_detection_alert(class_name, phone_number):
+def send_detection_alert(class_name, phone_number, personnel_id):
     api_url = "https://app.smartsmssolutions.com/io/api/client/v1/sms/"
 
     url = "https://app.smartsmssolutions.com/io/api/client/v1/sms/"
@@ -17,13 +17,11 @@ def send_detection_alert(class_name, phone_number):
         "routing": "2",
     }
 
-    # response = requests.post(url, data=params )
+    response = requests.post(url, data=params)
 
-    if 200 == 200:
-        from app import Alert, Personnel
-        
-        # personnel = Personnel.personnel_on_active_shift()
-        # Alert(message=message, personnel_id=2).create()
+    if response.status_code == 200:
+        from app import Alert
+        # Alert(message=message, personnel_id=personnel_id).create()
         print("SMS alert sent successfully!")
     else:
         print("Error sending SMS alert: {response.text}")

@@ -31,9 +31,7 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from alert_moduleX import send_detection_alert
-
-from Yolo_video import video_detection, process_uploaded_video
+from Yolo_video import video_detection
 
 
 app = Flask(__name__)
@@ -41,7 +39,6 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = "secretkey"
 app.config["UPLOAD_FOLDER"] = "static/uploadedfiles"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///TIMSec.db"
-app.config["JWT_TOKEN_LOCATION"] = ["headers", "cookies"]
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(seconds=36000)
 app.config["ALLOWED_EXTENSIONS"] = {"mp4", "png", "mov", "webm"}  # Set allowed file extensions
 
@@ -159,7 +156,8 @@ class Detection(db.Model, Abstract):
     detected_classname = db.Column(db.String(50), nullable=False)
     frame_number = db.Column(db.Integer, nullable=False)
     detected_at = db.Column(db.DateTime(timezone=True), default=datetime.now)
-
+    conf_score = db.Column(db.Float, nullable=True)
+    # frame = db.Column(db.I)
     personnel_id = db.Column(db.Integer, db.ForeignKey("personnel.id"), nullable=False)
     video_id = db.Column(db.Integer, db.ForeignKey("uploaded_video.id"))
 
@@ -220,15 +218,6 @@ with app.app_context():
     db.create_all()
 
 
-@api_blueprint.route("/profile", methods=["GET"])
-@jwt_required()
-def get_current_personnel():
-    obj = get_current_user()
-    personnel = PersonnelSchema().dump(obj)
-    return jsonify(info=personnel), 200
-
-
-
 # Video API Endpoints
 def allowed_file(filename):
     return (
@@ -239,17 +228,17 @@ def allowed_file(filename):
 
 def generate_frames(path_x):
     yolo_output = video_detection(path_x)
-    for detection_ in yolo_output:
-        ref, buffer = cv2.imencode(".jpeg", detection_)
+    for detection in yolo_output:
+        _, buffer = cv2.imencode(".jpeg", detection)
         frame = buffer.tobytes()
-        return b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
+        yield b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
 
 
 # @admin_required()
 @api_blueprint.route("/video_feed", methods=["GET"])
 def video_feed():
     return Response(
-        process_uploaded_video(0),
+        generate_frames(0),
         mimetype="multipart/x-mixed-replace; boundary=frame",
     )
 
@@ -271,7 +260,7 @@ def video_upload():
         try:
             # new_upload.create()
             return Response(
-            process_uploaded_video(video_path),
+            generate_frames(video_path),
             mimetype="multipart/x-mixed-replace; boundary=frame"
         )
         except IntegrityError as e:
@@ -282,6 +271,16 @@ def video_upload():
             )
     else:
         return jsonify(message="Invalid file type"), 400
+
+
+
+# Personnel API Endpoints 
+@api_blueprint.route("/profile", methods=["GET"])
+@jwt_required()
+def get_current_personnel():
+    obj = get_current_user()
+    personnel = PersonnelSchema().dump(obj)
+    return jsonify(info=personnel), 200
 
 
 @api_blueprint.route("/personnels/add_phone_number", methods=["POST"])
@@ -296,7 +295,7 @@ def add_personnel_phone_number():
     else:
         return jsonify(
             error="Invalid phone number. Please enter a valid 11-digit phone number."
-        )
+        ), 400
 
 
 @api_blueprint.route("/personnels/<int:id>", methods=["DELETE"])
@@ -386,7 +385,7 @@ def sign_out():
 @api_blueprint.route("/auth/refresh", methods=["POST"])
 @jwt_required(refresh=True)
 def refresh_token():
-    print(f'refreshing token for user: {get_jwt_identity()}')
+    logger.info(f'refreshing token for user: {get_jwt_identity()}')
     current_user = get_jwt_identity()
     level = current_user.level
     additional_claims = {"level": level}
@@ -394,7 +393,6 @@ def refresh_token():
         identity=current_user, additional_claims=additional_claims
     )    
     return jsonify(access_token=access_token), 200
-
 
 
 

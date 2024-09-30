@@ -60,7 +60,6 @@ export default function Body() {
     feed.src = api.defaults.baseURL + '/video_feed';
   }
 
-
   return (
     <>
       <div className="video-upload-body">
@@ -73,8 +72,7 @@ export default function Body() {
               <input onChange={uploadVideo} accept='video/*' style={{display: 'none'}} type="file" name="file" id="file" />
             </div>
             <div className='live-feed'>
-              <img src='' className='feed' alt="Detections" />
-              {/* <img src='http://localhost:5000/api/v1/video_feed' alt="Detections" /> */}
+              <img src='' className='feed' alt="Detections"/>
             </div>
             <div>
               <h2>Upload a Video for Detection</h2>
