@@ -5,6 +5,13 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONPATH /server
 ENV FLASK_APP app.py
 
+RUN apt-get update && sudo apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    libpq-dev \
+    libgl1-mesa-glx \
+    && sudo rm -rf /var/lib/apt/lists/*
+
 RUN mkdir /server
 
 WORKDIR /server
