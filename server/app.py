@@ -483,4 +483,4 @@ def user_lookup_callback(_jwt_header, _jwt_payload):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="localhost", port=5000)
+    app.run()
