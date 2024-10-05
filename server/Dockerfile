@@ -4,6 +4,8 @@ ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV FLASK_APP app.py
 
+RUN apt-get update && apt-get install -y libgl1-mesa-dev
+
 RUN mkdir /server
 
 WORKDIR /server
