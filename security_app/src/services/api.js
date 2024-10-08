@@ -3,7 +3,7 @@ import { jwtDecode } from "jwt-decode"
 
 
 const api = axios.create({
-  baseURL: 'https://tim-server.vercel.app/api/v1',
+  baseURL: 'http://timsec.onrender.com/api/v1',
 });
 
 const openPaths = ['/login', '/signup'];
