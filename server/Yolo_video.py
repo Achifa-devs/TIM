@@ -1,18 +1,59 @@
-import cv2, math
+import math, os
+
 from datetime import datetime
+
+import boto3, cv2
+
+from botocore.config import Config
+from botocore.exceptions import ClientError
+from dotenv import load_dotenv
 from ultralytics import YOLO
+
 from alert import send_detection_alert
+
+
+load_dotenv()
+
+BUCKET = os.getenv("BACKBLAZE_BUCKET")
+END_POINT = os.getenv("BACKBLAZE_BUCKET_ENDPOINT")
+DIR = os.getenv("DIR", "/home/ec2-user/yolo")
+KEY_NAME = os.getenv("BACKBLAZE_KEY_NAME")
+KEY_ID = os.getenv("BACKBLAZE_KEY_ID")
+APP_KEY = os.getenv("BACKBLAZE_APPLICATION_KEY")
+LOCAL_NAME = "best.pt"
+MODEL_FILE_PATH = os.path.join(DIR, LOCAL_NAME)
+
+
+def get_b2_resource(end_point, key_id, application_key):
+    return boto3.resource(
+        service_name='s3',
+        endpoint_url=end_point,
+        aws_access_key_id=key_id,
+        aws_secret_access_key=application_key,
+        config=Config(signature_version='s3v4')
+    )
+
+
+def download_model(bucket, file_path, key_name, b2):
+    try:
+        b2.Bucket(bucket).download_file(key_name, file_path)
+    except ClientError as ce:
+        print('error', ce)
+
+
+def load_model():
+    if LOCAL_NAME not in os.listdir(DIR):
+        b2 = get_b2_resource(END_POINT, KEY_ID, APP_KEY)
+        download_model(BUCKET, MODEL_FILE_PATH, KEY_NAME, b2)
+    model = YOLO(MODEL_FILE_PATH)
+    return model
 
 
 def video_detection(path_x, callback_function=send_detection_alert):
     # Create a Webcam Object
     cap = cv2.VideoCapture(path_x)
 
-    # Specify the path to your custom weights file
-    custom_weights_path = "./notebooks/best.pt"
-
-    # Initialize YOLO model with custom weights
-    model = YOLO(custom_weights_path)
+    model = load_model()
 
     class_names = ["Burglary", "Fighting", "Robbery"]
     frame_number = 0
