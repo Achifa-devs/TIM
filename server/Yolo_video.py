@@ -16,11 +16,15 @@ load_dotenv()
 
 BUCKET = os.getenv("BACKBLAZE_BUCKET")
 END_POINT = os.getenv("BACKBLAZE_BUCKET_ENDPOINT")
-DIR = os.getenv("DIR", "/home/ec2-user/yolo")
 KEY_NAME = os.getenv("BACKBLAZE_KEY_NAME")
 KEY_ID = os.getenv("BACKBLAZE_KEY_ID")
 APP_KEY = os.getenv("BACKBLAZE_APPLICATION_KEY")
 LOCAL_NAME = "best.pt"
+DIR = os.getenv("DIR", "/temp/models/yolo")
+
+if not os.path.exists(DIR):
+    os.makedirs(DIR)
+
 MODEL_FILE_PATH = os.path.join(DIR, LOCAL_NAME)
 
 
@@ -105,6 +109,6 @@ def video_detection(path_x, callback_function=send_detection_alert):
                     ).create()
         
         yield frame
-        
+    print(detections)
     cap.release()
 
