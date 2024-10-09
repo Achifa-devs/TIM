@@ -11,44 +11,47 @@ from ultralytics import YOLO
 from alert import send_detection_alert
 
 
-load_dotenv()
+load_dotenv(".env.server")
 
-BUCKET = os.getenv("BACKBLAZE_BUCKET")
-END_POINT = os.getenv("BACKBLAZE_BUCKET_ENDPOINT")
-KEY_NAME = os.getenv("BACKBLAZE_KEY_NAME")
-KEY_ID = os.getenv("BACKBLAZE_KEY_ID")
-APP_KEY = os.getenv("BACKBLAZE_APPLICATION_KEY")
+
+BUCKET = os.getenv("B2_BUCKET")
+B2_ENDPOINT = os.getenv("B2_BUCKET_ENDPOINT")
+KEY_NAME = os.getenv("B2_KEY_NAME")
+KEY_ID = os.getenv("B2_KEY_ID")
+APP_KEY = os.getenv("B2_APPLICATION_KEY")
 LOCAL_NAME = "best.pt"
 CURRENT_DIR = os.path.dirname(__file__)
-DIR = os.path.join(CURRENT_DIR, "model")
+MODEL_DIR = os.path.join(CURRENT_DIR, "model/weights")
 
-if not os.path.exists(DIR):
-    os.makedirs(DIR)
+if not os.path.exists(MODEL_DIR):
+    os.makedirs(MODEL_DIR)
 
-MODEL_FILE_PATH = os.path.join(DIR, LOCAL_NAME)
+MODEL_FILE_PATH = os.path.join(MODEL_DIR, LOCAL_NAME)
 
 
-def get_b2_resource(end_point, key_id, application_key):
-    return boto3.resource(
+def get_b2_resource():
+    b2 = boto3.resource(
         service_name='s3',
-        endpoint_url=end_point,
-        aws_access_key_id=key_id,
-        aws_secret_access_key=application_key,
+        endpoint_url=B2_ENDPOINT,
+        aws_access_key_id=KEY_ID,
+        aws_secret_access_key=APP_KEY,
         config=Config(signature_version='s3v4')
     )
+    return b2
 
 
-def download_model(bucket, file_path, key_name, b2):
+def download_model():
+    b2 = get_b2_resource()
+    bucket = b2.Bucket(BUCKET)
     try:
-        b2.Bucket(bucket).download_file(key_name, file_path)
+        bucket.download_file(KEY_NAME, MODEL_FILE_PATH)
     except ClientError as ce:
         print('error', ce)
 
 
 def load_model():
-    if LOCAL_NAME not in os.listdir(DIR):
-        b2 = get_b2_resource(END_POINT, KEY_ID, APP_KEY)
-        download_model(BUCKET, MODEL_FILE_PATH, KEY_NAME, b2)
+    if LOCAL_NAME not in os.listdir(MODEL_DIR):
+        download_model()
     model = YOLO(MODEL_FILE_PATH)
     return model
 
