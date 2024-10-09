@@ -2,11 +2,10 @@ import requests, os
 
 
 def send_detection_alert(class_name, phone_number, personnel_id):
-    api_url = "https://app.smartsmssolutions.com/io/api/client/v1/sms/"
 
     url = "https://app.smartsmssolutions.com/io/api/client/v1/sms/"
     message = f"Suspicious activity detected at ifite gate: {class_name}"
-    token = os.environ.get("SMARTSMS_TOKEN")
+    token = os.getenv("SMARTSMS_TOKEN")
     print(token)
     params = {
         "token": token,
@@ -16,7 +15,6 @@ def send_detection_alert(class_name, phone_number, personnel_id):
         "type": 0,  # Plain Text message (default)
         "routing": "2",
     }
-
     response = requests.post(url, data=params)
 
     if response.status_code == 200:
