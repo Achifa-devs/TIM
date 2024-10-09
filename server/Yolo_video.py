@@ -1,9 +1,7 @@
 import math, os
-
 from datetime import datetime
 
 import boto3, cv2
-
 from botocore.config import Config
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
@@ -21,7 +19,8 @@ KEY_NAME = os.getenv("BACKBLAZE_KEY_NAME")
 KEY_ID = os.getenv("BACKBLAZE_KEY_ID")
 APP_KEY = os.getenv("BACKBLAZE_APPLICATION_KEY")
 LOCAL_NAME = "best.pt"
-DIR = os.getenv("DIR", "/usr/models/yolo")
+CURRENT_DIR = os.path.dirname(__file__)
+DIR = os.path.join(CURRENT_DIR, "model")
 
 if not os.path.exists(DIR):
     os.makedirs(DIR)

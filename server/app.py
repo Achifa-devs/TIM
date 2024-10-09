@@ -265,10 +265,8 @@ def video_upload():
         )
         except IntegrityError as e:
             db.session.rollback()
-            return (
-                jsonify(message="Failed to upload video. Integrity error: " + str(e.orig)),
-                400,
-            )
+            logger.error(f"Failed to upload video. Integrity error: {e.orig}")
+            return jsonify(message="Failed to upload video"), 400
     else:
         return jsonify(message="Invalid file type"), 400
 
@@ -331,8 +329,8 @@ def login():
             email_address, additional_claims=additional_claims
         )
         refresh_token = create_refresh_token(email_address)
-        logger.info(f"Access token: {access_token}")
-        logger.info(f"Refresh token: {refresh_token}")
+        logger.info(f"Access token for {email_address}: {access_token}")
+        logger.info(f"Refresh token for {email_address}: {refresh_token}")
         return jsonify(
             access_token=access_token,
             refresh_token=refresh_token,
@@ -361,16 +359,15 @@ def register():
     )
     try:
         new_personnel.create()
+        logger.info(f"New Personnel added: {new_personnel}")
         return jsonify(
             message="Personnel added successfully",
             personnel=PersonnelSchema().dump(new_personnel)
         ), 201
     except IntegrityError as e:
         db.session.rollback()
-        return (
-            jsonify(message="Failed to create personnel. Integrity error: " + str(e.orig)),
-            400,
-        )
+        logger.error(f"Failed to create personnel. Integrity error: {e.orig}")
+        return jsonify(message="Failed to create personnel"), 400
 
 
 @api_blueprint.route("/sign_out", methods=["POST"])
@@ -385,7 +382,7 @@ def sign_out():
 @api_blueprint.route("/auth/refresh", methods=["POST"])
 @jwt_required(refresh=True)
 def refresh_token():
-    logger.info(f'refreshing token for user: {get_jwt_identity()}')
+    logger.info(f'Refreshing token for: {get_jwt_identity()}')
     current_user = get_jwt_identity()
     level = current_user.level
     additional_claims = {"level": level}
@@ -419,10 +416,8 @@ def add_new_shift():
         ), 201
     except IntegrityError as e:
         db.session.rollback()
-        return (
-            jsonify(message="Failed to create shift. Integrity error: " + str(e.orig)),
-            400,
-        )
+        logger.error(f"Failed to create shift. Integrity error: {e.orig}")
+        return jsonify(message="Failed to create shift"), 400
 
 
 @api_blueprint.route("/admin/shifts", methods=["GET"])
@@ -473,6 +468,18 @@ def delete_shift(id):
 
 
 app.register_blueprint(api_blueprint)
+
+
+@app.before_request
+def log_request():
+    logger.info(f"Handling request for: {request.url} - {request.method}")
+    logger.info(f"User: {get_jwt_identity()}")
+
+
+@app.after_request
+def log_response(response):
+    logger.info(f"Response status: {response.status_code}")
+    return response
 
 
 @jwt.user_lookup_loader
