@@ -14,11 +14,11 @@ from alert import send_detection_alert
 load_dotenv(".env.server")
 
 
-BUCKET = os.getenv("B2_BUCKET")
-B2_ENDPOINT = os.getenv("B2_BUCKET_ENDPOINT")
-KEY_NAME = os.getenv("B2_KEY_NAME")
-KEY_ID = os.getenv("B2_KEY_ID")
-APP_KEY = os.getenv("B2_APPLICATION_KEY")
+BUCKET = os.getenv("BACKBLAZE_BUCKET")
+END_POINT = os.getenv("BACKBLAZE_BUCKET_ENDPOINT")
+KEY_NAME = os.getenv("BACKBLAZE_KEY_NAME")
+KEY_ID = os.getenv("BACKBLAZE_KEY_ID")
+APP_KEY = os.getenv("BACKBLAZE_APPLICATION_KEY")
 LOCAL_NAME = "best.pt"
 CURRENT_DIR = os.path.dirname(__file__)
 MODEL_DIR = os.path.join(CURRENT_DIR, "model/weights")
