@@ -40,7 +40,12 @@ app.config["SECRET_KEY"] = "secretkey"
 app.config["UPLOAD_FOLDER"] = "static/uploadedfiles"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///TIMSec.db"
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(seconds=36000)
-app.config["ALLOWED_EXTENSIONS"] = {"mp4", "png", "mov", "webm"}  # Set allowed file extensions
+app.config["ALLOWED_EXTENSIONS"] = {
+    "mp4",
+    "png",
+    "mov",
+    "webm",
+} 
 
 CORS(
     app,
@@ -54,13 +59,12 @@ migrate = Migrate(app, db, "instance/migrations")
 jwt = JWTManager(app)
 
 logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG)  
 logger = logging.getLogger("app")
 file_handler = logging.FileHandler("app.log")
 file_handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 file_handler.setFormatter(formatter)
-logger.addHandler(file_handler) 
+logger.addHandler(file_handler)
 
 
 api_blueprint = Blueprint("api_blueprint", __name__, url_prefix="/api/v1")
@@ -76,7 +80,9 @@ def admin_required():
                 return fn(*args, **kwargs)
             else:
                 return jsonify(msg="Admins only!"), 403
+
         return decorator
+
     return wrapper
 
 
@@ -119,6 +125,10 @@ class Personnel(db.Model, Abstract):
     email_address = db.Column(db.String(50), nullable=False, unique=True)
     phone_number = db.Column(db.Integer, nullable=False, unique=True)
     level = db.Column(db.String(50), nullable=False, default="staff")
+    joined_at = db.Column(
+        db.DateTime(timezone=True), nullable=True, default=datetime.now
+    )
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
     password = db.Column(db.String(100), nullable=False)
 
     def __init__(self, **kwargs):
@@ -148,7 +158,16 @@ class Personnel(db.Model, Abstract):
 class PersonnelSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Personnel
-        fields = ("id", "name", "email_address", "phone_number", "level")
+        fields = (
+            "id",
+            "first_name",
+            "last_name",
+            "email_address",
+            "phone_number",
+            "level",
+            "joined_at",
+            "is_active",
+        )
 
 
 class Detection(db.Model, Abstract):
@@ -195,6 +214,9 @@ class Shift(db.Model, Abstract):
     start_time = db.Column(db.DateTime(timezone=True), nullable=False)
     end_time = db.Column(db.DateTime(timezone=True), nullable=False)
     status = db.Column(db.String(50), nullable=False, default="inactive")
+    created_at = db.Column(
+        db.DateTime(timezone=True), nullable=False, default=datetime.now
+    )
 
     personnel_id = db.Column(db.Integer, db.ForeignKey("personnel.id"))
 
@@ -211,7 +233,14 @@ class Shift(db.Model, Abstract):
 class ShiftSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Shift
-        fields = ("id", "shift_name", "start_time", "end_time", "personnel_id")
+        fields = (
+            "id",
+            "shift_name",
+            "start_time",
+            "end_time",
+            "created_at",
+            "personnel_id",
+        )
 
 
 with app.app_context():
@@ -224,7 +253,7 @@ def allowed_file(filename):
         "." in filename
         and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
     )
-    
+
 
 def generate_frames(path_x):
     yolo_output = video_detection(path_x)
@@ -260,21 +289,22 @@ def video_upload():
         try:
             # new_upload.create()
             return Response(
-            generate_frames(video_path),
-            mimetype="multipart/x-mixed-replace; boundary=frame"
-        )
+                generate_frames(video_path),
+                mimetype="multipart/x-mixed-replace; boundary=frame",
+            )
         except IntegrityError as e:
             db.session.rollback()
             return (
-                jsonify(message="Failed to upload video. Integrity error: " + str(e.orig)),
+                jsonify(
+                    message="Failed to upload video. Integrity error: " + str(e.orig)
+                ),
                 400,
             )
     else:
         return jsonify(message="Invalid file type"), 400
 
 
-
-# Personnel API Endpoints 
+# Personnel API Endpoints
 @api_blueprint.route("/profile", methods=["GET"])
 @jwt_required()
 def get_current_personnel():
@@ -293,9 +323,12 @@ def add_personnel_phone_number():
         personnel.update(phone_number=new_phone_number)
         return jsonify(message="Phone number added successfully."), 201
     else:
-        return jsonify(
-            error="Invalid phone number. Please enter a valid 11-digit phone number."
-        ), 400
+        return (
+            jsonify(
+                error="Invalid phone number. Please enter a valid 11-digit phone number."
+            ),
+            400,
+        )
 
 
 @api_blueprint.route("/personnels/<int:id>", methods=["DELETE"])
@@ -317,7 +350,6 @@ def get_personnels():
     return jsonify(personnel_list), 200
 
 
-
 # Authentication API Endpoints
 @api_blueprint.route("/login", methods=["POST"])
 def login():
@@ -333,11 +365,10 @@ def login():
         refresh_token = create_refresh_token(email_address)
         logger.info(f"Access token: {access_token}")
         logger.info(f"Refresh token: {refresh_token}")
-        return jsonify(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            bool=True
-        ), 200
+        return (
+            jsonify(access_token=access_token, refresh_token=refresh_token, bool=True),
+            200,
+        )
     else:
         return jsonify(error="Invalid email or password", bool=False), 401
 
@@ -357,18 +388,23 @@ def register():
         email_address=email_address,
         phone_number=phone_number,
         level=level,
-        password=password
+        password=password,
     )
     try:
         new_personnel.create()
-        return jsonify(
-            message="Personnel added successfully",
-            personnel=PersonnelSchema().dump(new_personnel)
-        ), 201
+        return (
+            jsonify(
+                message="Personnel added successfully",
+                personnel=PersonnelSchema().dump(new_personnel),
+            ),
+            201,
+        )
     except IntegrityError as e:
         db.session.rollback()
         return (
-            jsonify(message="Failed to create personnel. Integrity error: " + str(e.orig)),
+            jsonify(
+                message="Failed to create personnel. Integrity error: " + str(e.orig)
+            ),
             400,
         )
 
@@ -385,20 +421,19 @@ def sign_out():
 @api_blueprint.route("/auth/refresh", methods=["POST"])
 @jwt_required(refresh=True)
 def refresh_token():
-    logger.info(f'refreshing token for user: {get_jwt_identity()}')
+    logger.info(f"refreshing token for user: {get_jwt_identity()}")
     current_user = get_jwt_identity()
     level = current_user.level
     additional_claims = {"level": level}
     access_token = create_access_token(
         identity=current_user, additional_claims=additional_claims
-    )    
+    )
     return jsonify(access_token=access_token), 200
-
 
 
 # Shifts API Endpoints
 @api_blueprint.route("/admin/new-shift", methods=["POST"])
-@admin_required()
+# @admin_required()
 def add_new_shift():
     data = request.get_json()
     shift_name = data.get("shift_name")
@@ -407,16 +442,19 @@ def add_new_shift():
     personnel_id = data.get("personnel_id")
     new_shift = Shift(
         shift_name=shift_name,
-        start_time=start_time,
-        end_time=end_time,
-        personnel_id=personnel_id
+        start_time=datetime.strptime(start_time, "%H:%M"),
+        end_time=datetime.strptime(end_time, "%H:%M"),
+        personnel_id=personnel_id,
     )
     try:
         new_shift.create()
-        return jsonify(
-            message="Shift created successfully",
-            shift=ShiftSchema().dump(new_shift)
-        ), 201
+        return (
+            jsonify(
+                message="Shift created successfully",
+                shift=ShiftSchema().dump(new_shift),
+            ),
+            201,
+        )
     except IntegrityError as e:
         db.session.rollback()
         return (
@@ -426,12 +464,12 @@ def add_new_shift():
 
 
 @api_blueprint.route("/admin/shifts", methods=["GET"])
-@admin_required()
+# @admin_required()
 def get_shifts():
-    personnel = get_current_user()
-    shifts = Shift.query.filter_by(personnel_id=personnel.id).all()
+    # personnel = get_current_user()
+    shifts = Shift.query.all()
     shift_list = ShiftSchema(many=True).dump(shifts)
-    return jsonify(shifts=shift_list), 200
+    return jsonify(shift_list), 200
 
 
 @api_blueprint.route("/shifts/<int:id>", methods=["GET"])
@@ -444,7 +482,7 @@ def get_single_shift(id):
 
 
 @api_blueprint.route("/shifts/<int:id>", methods=["PUT"])
-@admin_required()
+@jwt_required(optional=True)
 def update_shift(id):
     data = request.get_json()
     shift = Shift.query.get(id)
@@ -453,10 +491,12 @@ def update_shift(id):
         start_time = data.get("start_time")
         end_time = data.get("end_time")
         shift.update(shift_name=shift_name, start_time=start_time, end_time=end_time)
-        return jsonify(
-            message="Shift updated successfully",
-            shift=ShiftSchema().dump(shift)
-        ), 200
+        return (
+            jsonify(
+                message="Shift updated successfully", shift=ShiftSchema().dump(shift)
+            ),
+            200,
+        )
     else:
         return jsonify(error="Shift not found"), 404
 
