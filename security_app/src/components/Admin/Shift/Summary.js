@@ -8,7 +8,7 @@ export default function Summary() {
 
     useEffect(() => {
         // function fetchUserData() {
-        api.get('/admin/users', {})
+        api.get('/personnels', {})
         .then((response) => {
             setUserList(response.data)
         })

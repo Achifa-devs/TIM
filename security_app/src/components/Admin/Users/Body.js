@@ -5,20 +5,19 @@ import api from '../../../services/api'
 
 export default function Body({users}) {
 
-  let [security_id, set_security_id] = useState(null);
+  let [id, set_security_id] = useState(null);
 
   let [userList, setUserList] = useState([])
   let [filteredUserList, setfilteredUserList] = useState([])
 
     useEffect(() => {
       // function fetchUserData() {
-      api.get('/admin/users', {})
+      api.get('/personnels', {})
       .then((response) => {
           setUserList(response.data)
       })
       .catch(err => {
           console.log(err)
-          
       })
       // }
   
@@ -41,8 +40,8 @@ function handleShiftOverlay(e) {
   }
 
   useEffect(() => {
-    setfilteredUserList(userList.filter(item => item.security_id === security_id))
-  }, [security_id])
+    setfilteredUserList(userList.filter(item => item.id === id))
+  }, [id])
   return (
     <>
 
@@ -55,12 +54,12 @@ function handleShiftOverlay(e) {
             users.map((item, index) => 
             <li key={index}> 
                <div>
-                {index + 1}. &nbsp;&nbsp; {`${item.fname} ${item.lname}`}  <small style={{color: item.isActive ? 'green':'red', background: '#fff', padding: '3px 8px', borderRadius: '2px', fontWeight: '500'}}>{item.isActive ? 'Active' : 'Offline'}</small>
+                {index + 1}. &nbsp;&nbsp; {`${item.first_name} ${item.last_name}`}  <small style={{color: item.is_active ? 'green':'red', background: '#fff', padding: '3px 8px', borderRadius: '2px', fontWeight: '500'}}>{item.is_active ? "online" : "offline"} </small>
                </div>
                <div style={{textAlign: 'right'}}>
                  <div>
                    <button onClick={e=>{
-                    set_security_id(item.security_id)
+                    set_security_id(item.id)
                     handleShift(e)
                    }} style={{background: '#000', width: 'auto', height: 'auto', padding: '10px'}}>
                     Assign New Shift
@@ -70,9 +69,9 @@ function handleShiftOverlay(e) {
                  <div>
                    <small>
                     Joined {
-                      item?.created_at
+                      item?.joined_at
                       ?
-                      new Date(item?.created_at).toUTCString()
+                      new Date(item?.joined_at).toUTCString()
                       :
                       "loading..."
                     }

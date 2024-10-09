@@ -9,12 +9,40 @@ export default function AddShiftOverlay({users}){
    let [end_time,set_end_time] = useState('00:00')
    let [personnel_id, set_personnel_id] = useState(null);
 
+   // Function to calculate the shift name based on start and end times
+  function getShiftName(startTime, endTime) {
+    const startHour = parseInt(startTime.split(':')[0], 10);
+    const endHour = parseInt(endTime.split(':')[0], 10);
+
+    // Short Shifts logic (1 AM to 11 AM -> Morning, etc.)
+    if (startHour >= 1 && startHour < 11) {
+      return "Morning Shift";
+    } else if (startHour >= 12 && startHour < 18) {
+      return "Afternoon Shift";
+    } else if (startHour >= 19 || startHour === 0) {
+      return "Night Shift";
+    }
+
+    // Long Shifts logic (6 AM to 6 PM -> Day Shift, etc.)
+    if (startHour >= 6 && startHour < 18 && endHour <= 18) {
+      return "Day Shift";
+    } else if (startHour >= 18 || endHour < 6) {
+      return "Night Shift";
+    }
+
+    return "Invalid shift";
+  }
+
    useEffect(() => {
      console.log(users)
    }, [users])
 
    function uploadShift() {
-        api.post('/admin/new-shift', {shift_name,start_time,end_time,personnel_id}) 
+    const calculatedShiftName = getShiftName(start_time, end_time);
+    set_shift_name(calculatedShiftName);
+
+
+        api.post('/admin/new-shift', {shift_name: calculatedShiftName, start_time, end_time, personnel_id}) 
         .then((response) => {
             // console.log('...',response)
             if(response.data){
@@ -27,7 +55,6 @@ export default function AddShiftOverlay({users}){
         })
         .catch(err => {
             console.log(err)
-            
         })
    }
 
@@ -56,6 +83,7 @@ export default function AddShiftOverlay({users}){
                         </select>
                     </div> */}
 
+
                     <div className="input-cnt">
                         <label style={{height: 'auto', width: 'auto', background: 'transparent', color: '#000'}} htmlFor=""><small>Start Tme</small></label>
                         <input onInput={e => set_start_time(e.target.value)} type="time" name="" id="" />
@@ -74,8 +102,9 @@ export default function AddShiftOverlay({users}){
                             {
                                 users.map((item,index) => {
                                     return(
-                                        <option key={index} value={item?.security_id}>
-                                            {`${index+1}.  ${item?.fname} ${item?.lname}`}
+                                        <option key={index} value={item?.id}>
+                                          
+                                            {`${index+1}.  ${item?.first_name} ${item?.last_name}`}
                                         </option>
                                     )
                                 })
