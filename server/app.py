@@ -473,7 +473,6 @@ app.register_blueprint(api_blueprint)
 @app.before_request
 def log_request():
     logger.info(f"Handling request for: {request.url} - {request.method}")
-    logger.info(f"User: {get_jwt_identity()}")
 
 
 @app.after_request
