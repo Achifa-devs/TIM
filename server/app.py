@@ -131,10 +131,7 @@ class Alert(db.Model, Abstract):
         self.notify_personnel()
 
     def notify_personnel(self):
-        if Alert.can_create_alert(self.to_personnel.id):
-            self._send_sms()
-        else:
-            logger.info(f"Skipping alert for {self.to_personnel.phone_number} due to time gap")
+        self._send_sms()
 
     def _send_sms(self):
         url = "https://app.smartsmssolutions.com/io/api/client/v1/sms/"
@@ -389,6 +386,8 @@ def frame_upload():
                 # Send alert to personnel
                 if Alert.can_create_alert(personnel.id):
                     Alert(message=class_name, personnel_id=1).create()
+                else:
+                    logger.info(f"Skipping alert for {personnel.phone_number} due to time gap")
 
                 # Save the detection in the database
                 filename = secure_filename(frame_data.filename)
