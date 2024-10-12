@@ -367,7 +367,7 @@ def allowed_file(filename):
     )
 
 
-@api_blueprint.route("/process_video/upload", methods=["POST"])
+@api_blueprint.route("/frame_upload/detect", methods=["POST"])
 # @jwt_required()
 def frame_upload():
     data = request.files

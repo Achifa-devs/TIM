@@ -83,7 +83,7 @@ export default function Body() {
         formData.append('frame', blob);
 
         // Send the frame to the Flask backend and get the processed frame
-        api.post('/process_video/upload', formData, {
+        api.post('/frame_upload/detect', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
@@ -95,19 +95,19 @@ export default function Body() {
             const imageURL = URL.createObjectURL(imageBlob);
             setImageURL(imageURL);
           });
-      }, 'image/jpeg');
+      }, 'image/jpeg', 0.9);
     }
   }
 
 
-  // Capture frames every 1500ms and send to the server
+  // Capture frames every 3500ms and send to the server
   useEffect(() => {
     let interval;
     if (isRecording || videoURL) {
       interval = setInterval(() => {
         let from = isRecording ? "live video" : "video upload";
         captureFrame(from);
-      }, 1500);
+      }, 3500);
     }
     return () => clearInterval(interval);
   }, [isRecording, videoURL]);

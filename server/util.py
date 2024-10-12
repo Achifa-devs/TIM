@@ -18,7 +18,7 @@ KEY_ID = os.getenv("B2_KEY_ID")
 APP_KEY = os.getenv("B2_APPLICATION_KEY")
 LOCAL_NAME = "best.pt"
 CURRENT_DIR = os.path.dirname(__file__)
-MODEL_DIR = os.path.join(CURRENT_DIR, "model/weights")
+MODEL_DIR = os.path.join(CURRENT_DIR, "model\\weights")
 
 if not os.path.exists(MODEL_DIR):
     os.makedirs(MODEL_DIR)
@@ -38,19 +38,21 @@ def get_b2_resource():
 
 
 def download_model(logger=None):
-    b2 = get_b2_resource()
-    bucket = b2.Bucket(BUCKET)
-    try:
-        bucket.download_file(KEY_NAME, MODEL_FILE_PATH)
-    except ClientError as ce:
-        logger.error("error download model weights" + ce)
+    if not os.path.exists(MODEL_FILE_PATH):
+        logger.info(f"Downloading model weights to {MODEL_FILE_PATH}")
+        b2 = get_b2_resource()
+        bucket = b2.Bucket(BUCKET)
+        try:
+            bucket.download_file(KEY_NAME, MODEL_FILE_PATH)
+        except ClientError as ce:
+            logger.error(f"Error download model weights {ce}")
+    logger.info(f"Model weights downloaded to {MODEL_FILE_PATH}")
 
 
 def detect(frame_data):
     frame = process_frame_data(frame_data)
 
-    path = "./notebooks/best.pt"  # YOLO model path
-    model = YOLO(path)
+    model = YOLO(MODEL_FILE_PATH)
 
     class_names = ["Burglary", "Fighting", "Robbery"]
 
