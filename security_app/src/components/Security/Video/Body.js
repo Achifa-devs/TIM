@@ -1,105 +1,179 @@
-import React, { useState, useRef } from 'react'
-import api from '../../../services/api'
+import React, { useState, useRef, useEffect } from 'react';
+import api from '../../../services/api';
 
 export default function Body() {
-
-  let [video, setVideo] = useState('');
-  let [btntxt, setbtntxt] = useState('Upload video');
-  let [detections, setDetections] = useState([]); 
+  const [videoURL, setVideoURL] = useState(null);
+  const [btntxt, setbtntxt] = useState('Upload video');
+  const [detections, setDetections] = useState([]);
+  const [imageURL, setImageURL] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [stream, setStream] = useState(null);
 
   const videoRef = useRef(null);
-  const [videoURL, setVideoURL] = useState(null);
+  const canvasRef = useRef(null);
 
+
+  // Function to handle video upload
   function uploadVideo(e) {
     let file = e.target.files[0];
-    setbtntxt('Processing...')
+    console.log('Handling video upload');
+    setbtntxt('Uploading...');
 
-    // Create FormData and send to Flask backend
-    let formData = new FormData();
-    formData.append('video', file);
-
-    api.post('/process_video/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
-      responseType: 'blob'
-    })
-    .then(response => {
-      setDetections(response.data);
-      console.log(response.data);
-      setbtntxt('Upload video')
-
-      const videoBlob = new Blob([response.data], { type: 'video/mp4' });
-      const videoURL = URL.createObjectURL(videoBlob);
-      setVideoURL(videoURL);
-
-
-      let reader = new FileReader()
-      reader.onload=(result => {
-        setVideo(reader.result)
-        // console.log(reader.result)
-      })
-      reader.readAsDataURL(file)
-    })
-    .catch(error => {
-      setbtntxt('Upload video')
-
-      console.error("There was an error uploading the video!", error);
-    });
-
-
-    // console.log(file)
+    // Access the file and start the file reader stream
+    setTimeout(() => {
+      const reader = new FileReader();
+      setbtntxt('Processing...');
+      reader.onload = (e => {
+        setVideoURL(reader.result);
+        console.log('setVideoURL');
+      });
+      reader.readAsDataURL(file);
+    }, 5000);
+    setbtntxt('Upload Video');
   }
 
-  const constraint = {
-    video: true
-  }
 
+  // Constraints for accessing the camera
+  const constraint = {video: true};
+
+
+  // Start the live camera feed
   function startLiveCam(e) {
-    let feed = document.querySelector('.feed');
-    feed.src = api.defaults.baseURL + '/video_feed';
+    console.log('startLiveCam');
+    setIsRecording(true); // Set recording state to true
+    navigator.mediaDevices.getUserMedia(constraint)
+      .then((stream) => {
+        setStream(stream);
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      })
+        .catch((err) => {
+          console.error('Error accessing camera: ', err);
+        });
   }
+
+    // Stop the live camera feed
+    function stopLiveCam() {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop()); // Stop each track (audio, video)
+        setStream(null); // Clear the stream state
+        setIsRecording(false); // Set recording state to false
+      }
+    }
+
+
+  // Capture frames from the live video stream/upload and send to backend
+  function captureFrame(from) {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    console.log('Video ready state: ', video.readyState);
+
+    if (canvas && video && video.readyState === 4) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Draw the current video frame onto the canvas
+      console.log(`capturing Frames from ${from}`);
+      canvas.getContext('2d')
+        .drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Convert the canvas to a Blob (image format) and send it to the server
+      canvas.toBlob((blob) => {
+        const formData = new FormData();
+        formData.append('frame', blob);
+
+        // Send the frame to the Flask backend and get the processed frame
+        api.post('/process_video/upload', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          responseType: 'blob',
+        })
+          .then((response) => {
+            console.log('Frame processed:', response.data);
+            const imageBlob = new Blob([response.data], { type: 'image/jpeg' });
+            const imageURL = URL.createObjectURL(imageBlob);
+            setImageURL(imageURL);
+          });
+      }, 'image/jpeg');
+    }
+  }
+
+
+  // Capture frames every 1500ms and send to the server
+  useEffect(() => {
+    let interval;
+    if (isRecording || videoURL) {
+      interval = setInterval(() => {
+        let from = isRecording ? "live video" : "video upload";
+        captureFrame(from);
+      }, 1500);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording, videoURL]);
+
 
   return (
-    <>
-      <div className="video-upload-body">
-        <section className='body-cnt'>
+    <div className="video-upload-body">
+      <section className="body-cnt">
+        <section className="video-cnt">
+          <div className="input-cnt">
+            <input
+              onChange={uploadVideo}
+              accept="video/*"
+              style={{ display: 'none' }}
+              type="file"
+              name="file"
+              id="file"
+            />
+          </div>
+          <div className="live-feed">
+            {(videoURL || isRecording) && (
+              <video
+                ref={videoRef}
+                controls
+                autoPlay
+                muted
+                src={videoURL}
+                style={{ width: '70%', height: 'auto' }}
+              >
+              </video>
+            )}
+          </div>
+          <canvas
+            ref={canvasRef}
+            style={{ display: 'none'}}
+          ></canvas>
+          {imageURL && (
+            <div className="side-by-side-container" style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div className="original-frame">
+                <h3>Original Frame</h3>
+                {/* canvas for frame capturing (shown when imageURL is available) */}
+                <canvas
+                  ref={canvasRef}
+                  style={{ border: '1px solid black', width: '100%', height: 'auto' }}
+                ></canvas>
+              </div>
 
-          <section className='video-cnt'>
-            <small><b>Upload a Video for Detection</b></small>
-
-            <div className='video'>
-              <video controls style={{height: '100%', width: '100%'}} autoPlay src={video}></video>
+              <div className="processed-image">
+                <h3>Processed Image</h3>
+                <img
+                  src={imageURL}
+                  className="feed"
+                  alt="Processed Detections"
+                  style={{ height: 'auto', width: '100%' }}
+                />
+              </div>
             </div>
-            <div className="input-cnt">
-              <input onChange={uploadVideo} accept='video/*' style={{display: 'none'}} type="file" name="file" id="file" />
-            </div>
-            <div className='live-feed'>
-              <img src='' className='feed' alt="Detections"/>
-            </div>
-            <div>
-              {/* <input type="file" accept="video/*" onChange={uploadVideo} /> */}
-              {videoURL && (
-                <div>
-                  <h3>Detected Video</h3>
-                  <video ref={videoRef} controls autoPlay muted src={videoURL} style={{ width: '70%', height: 'auto' }}></video>
-                </div>
-              )}
-            </div>
-            <div className='btn-cnt'>
-              <label htmlFor="file">
-                {btntxt}
-              </label>
-              <button onClick={startLiveCam}>
-                Start Live Monitoring
-              </button>
-            </div>
-          </section>
-          
+          )}
+          <div className="btn-cnt">
+            <label htmlFor="file">{btntxt}</label>
+            <button onClick={startLiveCam} hidden={isRecording} disabled={isRecording}>Start Live Monitoring</button>
+            <button onClick={stopLiveCam} hidden={!isRecording} disabled={!isRecording}>Stop Live Monitoring</button>
+          </div>
+          {/* canvas for frame capturing */}
         </section>
-      </div>
-    </>
-  )
+      </section>
+    </div>
+  );
 }
-
-

@@ -3,7 +3,8 @@ import { jwtDecode } from "jwt-decode"
 
 
 const api = axios.create({
-  baseURL: 'https://timsec.onrender.com/api/v1',
+  // baseURL: 'https://timsec.onrender.com/api/v1',
+  baseURL: 'http://localhost:5000/api/v1',
 });
 
 const openPaths = ['/login', '/signup'];
