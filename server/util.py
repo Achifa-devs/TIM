@@ -52,7 +52,7 @@ def download_model(logger=None):
 def detect(frame_data):
     frame = process_frame_data(frame_data)
 
-    model = YOLO(MODEL_FILE_PATH)
+    model = YOLO("./notebooks/best.pt")
 
     class_names = ["Burglary", "Fighting", "Robbery"]
 
@@ -63,6 +63,10 @@ def detect(frame_data):
     # Process the YOLO detection results
     for r in results:
         boxes = r.boxes
+
+        if len(boxes) == 0:
+            return None, None
+
         for box in boxes:
             x1, y1, x2, y2 = box.xyxy[0]
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
@@ -97,9 +101,8 @@ def detect(frame_data):
     return to_bytes(frame), detections  # Return the modified frame
 
 
-def process_frame_data(frame_data):
+def process_frame_data(frame_bytes):
     # Read the frame data and decode
-    frame_bytes = frame_data.read()
     np_frame = np.frombuffer(frame_bytes, dtype=np.uint8)
     frame = cv2.imdecode(np_frame, cv2.IMREAD_COLOR)
     return frame
@@ -107,7 +110,7 @@ def process_frame_data(frame_data):
 
 def to_bytes(processed_frame):
     # Ensure frame is being processed in a loop
-    while True:
+    while processed_frame is not None:
         # Encode the frame as JPEG
         success, buffer = cv2.imencode(".jpeg", processed_frame)
         if not success:

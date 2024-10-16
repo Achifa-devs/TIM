@@ -1,14 +1,9 @@
 import logging, os, requests
+import random
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import (
-    Blueprint,
-    Flask,
-    Response,
-    jsonify,
-    request,
-)
+from flask import Blueprint, Flask, jsonify,request
 from flask_cors import CORS
 from flask_jwt_extended import (
     JWTManager,
@@ -26,7 +21,6 @@ from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import UniqueConstraint, and_
 from sqlalchemy.exc import IntegrityError
-from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from util import detect, download_model
@@ -39,25 +33,17 @@ app.config["UPLOAD_FOLDER"] = "static/uploadedfiles"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///TIMSec.db"
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(seconds=3600)
 app.config["JSON_SORT_KEYS"] = False
-app.config["ALLOWED_EXTENSIONS"] = {
-    "mp4",
-    "png",
-    "jpeg",
-    "webm",
-}
 app.config["ALERT_TIME_GAP"] = timedelta(minutes=10)
 
 CORS(
     app,
-    resources={
-        r"/api/v1/*": {"origins": "http://localhost:3000", "supports_credentials": True}
-    },
+    resources={r"/api/v1/*": {"origins": "*", "supports_credentials": True}},
 )
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
 migrate = Migrate(app, db, "instance/migrations")
 jwt = JWTManager(app)
-socket = SocketIO(app)
+socket = SocketIO(app, cors_allowed_origins=["http://127.0.0.1:5500"])
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("app")
 file_handler = logging.FileHandler("app.log")
@@ -90,13 +76,6 @@ class Abstract:
 
 
 # SQLAlchemy Models
-class UploadedVideo(db.Model, Abstract):
-    id = db.Column(db.Integer, primary_key=True)
-    file_name = db.Column(db.String, unique=True, nullable=False)
-    file_path = db.Column(db.String, unique=True, nullable=False)
-    uploaded_at = db.Column(db.DateTime(timezone=True), default=datetime.now)
-
-
 class Detection(db.Model, Abstract):
     id = db.Column(db.Integer, primary_key=True)
     detected_classname = db.Column(db.String(50), nullable=False)
@@ -105,7 +84,6 @@ class Detection(db.Model, Abstract):
     conf_score = db.Column(db.Float, nullable=True)
 
     personnel_id = db.Column(db.Integer, db.ForeignKey("personnel.id"), nullable=False)
-    video_id = db.Column(db.Integer, db.ForeignKey("uploaded_video.id"), nullable=True)
 
     def __repr__(self):
         return f"Detection(detected_classname='{self.detected_classname}', detected_at='{self.detected_at}')"
@@ -144,13 +122,19 @@ class Alert(db.Model, Abstract):
             "routing": "2",
         }
         response = requests.post(url, data=data)
-        logger.info(f"Response from SmartSMS: {response.status_code}, {response.json()}")
+        logger.info(
+            f"Response from SmartSMS: {response.status_code}, {response.json()}"
+        )
         logger.info(f"Alert sent to {self.to_personnel.phone_number}")
 
     @classmethod
     def can_create_alert(cls, personnel_id):
         """Check if enough time has passed since the last alert for the given personnel."""
-        last_alert = cls.query.filter_by(personnel_id=personnel_id).order_by(cls.created_at.desc()).first()
+        last_alert = (
+            cls.query.filter_by(personnel_id=personnel_id)
+            .order_by(cls.created_at.desc())
+            .first()
+        )
 
         if last_alert:
             time_since_last_alert = datetime.now() - last_alert.created_at
@@ -195,9 +179,9 @@ class Personnel(db.Model, Abstract):
     last_active_at = db.Column(db.DateTime(timezone=True), nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)
 
-    shifts = db.relationship('Shift', backref='personnel_on_shift', lazy=True)
-    detections = db.relationship('Detection', backref='personnel', lazy=True)
-    alerts = db.relationship('Alert', backref='to_personnel', lazy=True)
+    shifts = db.relationship("Shift", backref="personnel_on_shift", lazy=True)
+    detections = db.relationship("Detection", backref="personnel", lazy=True)
+    alerts = db.relationship("Alert", backref="to_personnel", lazy=True)
 
     def __init__(self, **kwargs):
         if request.method == "POST":
@@ -208,8 +192,8 @@ class Personnel(db.Model, Abstract):
     def __repr__(self):
         return f"Personnel(name='{self.first_name} {self.last_name}', email='{self.email_address}')"
 
-    @staticmethod
-    def on_active_shift():
+    @classmethod
+    def on_active_shift(cls):
         active_shift = Shift.query.filter(
             and_(
                 Shift.start_time <= datetime.now(),
@@ -219,16 +203,11 @@ class Personnel(db.Model, Abstract):
         ).first()
         if not active_shift:
             return None
-        personnel = Personnel.query.filter_by(id=active_shift.personnel_id).first()
+        personnel = cls.query.filter_by(id=active_shift.personnel_id).first()
         return personnel
 
 
 # SQLAlchemy Schemas
-class UploadedVideoSchema(ma.SQLAlchemyAutoSchema):
-    class Meta:
-        model = UploadedVideo
-
-
 class DetectionSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Detection
@@ -255,7 +234,6 @@ class PersonnelSchema(ma.SQLAlchemyAutoSchema):
     shifts = ma.Nested(ShiftSchema, many=True)
     detections = ma.Nested(DetectionSchema, many=True)
     alerts = ma.Nested(AlertSchema, many=True)
-
 
 
 with app.app_context():
@@ -309,7 +287,7 @@ def register():
     except IntegrityError as e:
         db.session.rollback()
         logger.error(f"Failed to create personnel. Integrity error: {e.orig}")
-        return jsonify(message="Failed to create personnel"), 400
+        return jsonify(message="Failed to create personnel")
 
 
 @api_blueprint.route("/login", methods=["POST"])
@@ -343,7 +321,22 @@ def sign_out():
     return jsonify(message="Signed out successfully"), 200
 
 
-@api_blueprint.route("/auth/refresh", methods=["POST"])
+@socket.on("connect")
+def connect():
+    try:
+        verify_jwt_in_request()
+        socket.emit("connected", "connected successfully")
+    except Exception as e:
+        print(e)    
+        socket.emit("error", str(e))
+
+
+@socket.on("disconnect")
+def disconnect():
+    socket.emit("disconnected", {"msg": "disconnected successfully"})
+
+
+@socket.on("auth refresh", namespace="/auth")
 @jwt_required(refresh=True)
 def refresh_token():
     logger.info(f"Refreshing token for: {get_jwt_identity()}")
@@ -353,64 +346,52 @@ def refresh_token():
     access_token = create_access_token(
         identity=current_user, additional_claims=additional_claims
     )
-    return jsonify(access_token=access_token), 200
-
-
-# Video API Endpoints
-def allowed_file(filename):
-    return (
-        "." in filename
-        and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
+    return socket.emit(
+        "refreshed", {"access_token": access_token}, namespace="/auth"
     )
 
 
-@api_blueprint.route("/frame_upload/detect", methods=["POST"])
+# Video API Endpoints
+@socket.on("frame upload")
 # @jwt_required()
-def frame_upload():
-    data = request.files
-    frame_data = data.get("frame")
-    if not frame_data:
-        return jsonify("No file selected"), 400
-    if frame_data and frame_data.filename:
-        # new_upload = UploadedVideo(
-        # file_name=file.filename, file_path=video_path, uploaded_at=datetime.now()
-        # )
-        try:
-            # Process and run detections on the frame
-            frame_bytes, detections = detect(frame_data)
-
+def video_frame_upload(data):
+    frame_bytes = data.get("frame")
+    if not frame_bytes:
+        return socket.emit("uploaded frame", {"message": "No file selected"})
+    try:
+        # Process and run detections on the frame
+        frame_bytes, detections = detect(frame_bytes)
+        if frame_bytes and detections:
             for detection in detections:
                 class_name, conf = detection
                 personnel = Personnel.on_active_shift()
 
                 # Send alert to personnel
-                if Alert.can_create_alert(personnel.id):
-                    Alert(message=class_name, personnel_id=1).create()
-                else:
-                    logger.info(f"Skipping alert for {personnel.phone_number} due to time gap")
+                # if Alert.can_create_alert(personnel.id):
+                #     Alert(message=class_name, personnel_id=1).create()
+                # else:
+                #     logger.info(
+                #         f"Skipping alert for {personnel.phone_number} due to time gap"
+                #     )
+                # choices = "ABCDEFGHIJKLMNOPQRISTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz"
+                # filename = f"{datetime.now()}-{personnel.last_name}-{random.choices(choices)}"
+                # # Save the detection in the database
+                # to_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+                # Detection(
+                #     classname=class_name,
+                #     frame=to_path,
+                #     personnel_id=1,
+                #     detected_at=datetime.now(),
+                #     conf_score=conf,
+                # ).create()
 
-                # Save the detection in the database
-                filename = secure_filename(frame_data.filename)
-                to_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-                frame_data.save(to_path)
-                Detection(
-                    classname=class_name,
-                    frame=to_path,
-                    personnel_id=1,
-                    detected_at=datetime.now(),
-                    conf_score=conf,
-                ).create()
-
-            return Response(
-                frame_bytes,
-                mimetype="multipart/x-mixed-replace; boundary=frame",
-            )
-        except IntegrityError as e:
-            db.session.rollback()
-            logger.error(f"Failed to upload video. Integrity error: {e.orig}")
-            return jsonify(message="Failed to upload video"), 400
-    else:
-        return jsonify(message="Invalid file type"), 400
+        return socket.emit(
+            "uploaded frame", {"frame_bytes": frame_bytes, "detections": detections}
+        )
+    except IntegrityError as e:
+        db.session.rollback()
+        logger.error(f"Failed database operation. Integrity error: {e.orig}")
+        return socket.emit("uploaded frame", {"message": "e no work"})
 
 
 # Personnel API Endpoints
@@ -422,50 +403,60 @@ def get_current_personnel():
     return jsonify(info=personnel), 200
 
 
-@api_blueprint.route("/personnels/add_phone_number", methods=["POST"])
-@jwt_required()
-def add_personnel_phone_number():
+@socket.on("add phone", "/personnels")
+# @jwt_required()
+def add_personnel_phone_number(data):
     personnel = get_current_user()
-    data = request.get_json()
     new_phone_number = data.get("phone_number")
     if len(new_phone_number) == 11 and new_phone_number.isdigit():
         personnel.update(phone_number=new_phone_number)
-        return jsonify(message="Phone number added successfully."), 201
+        return socket.emit(
+            "added phone", {"message": "Phone number added successfully."}
+        )
     else:
-        return (
-            jsonify(
-                error="Invalid phone number. Please enter a valid 11-digit phone number."
-            ),
-            400,
+        return socket.emit(
+            "added phone",
+            {
+                "error": "Invalid phone number. Please enter a valid 11-digit phone number."
+            },
         )
 
 
-@api_blueprint.route("/personnels/<int:id>", methods=["DELETE"])
-@admin_required()
+@socket.on("delete personnel", "/nur_fur_admin")
+# @admin_required()
 def delete_personnel(id):
     personnel = Personnel.query.get(id)
     if personnel:
         personnel.delete()
-        return jsonify(), 204
+        return socket.emit(
+            "deleted_personnel",
+            {"message": "Personnel deleted successfully."},
+            namespace="/nur_fur_admin",
+        )
     else:
-        return jsonify(error="Personnel not found"), 404
+        return socket.emit(
+            "deleted_personnel",
+            {"message": "Personnel not found."},
+            namespace="/nur_fur_admin",
+        )
 
 
-@api_blueprint.route("/personnels", methods=["GET"])
+@socket.on("personnels", "/nur_fur_admin")
 # @admin_required()
 def get_personnels():
     personnels = Personnel.query.all()
     personnel_list = PersonnelSchema(many=True).dump(personnels)
-    return jsonify(personnel_list), 200
+    return socket.emit("personnel list", personnel_list, namespace="/nur_fur_admin")
 
 
 # Shifts API Endpoints
-@api_blueprint.route("/admin/new-shift", methods=["POST"])
+@socket.on("add shift", "/nur_fur_admin")
 # @admin_required()
-def add_new_shift():
-    data = request.get_json()
+def add_new_shift(data):
+    print(data)
     shift_name = data.get("shift_name")
     start_time = data.get("start_time")
+    print(start_time)
     end_time = data.get("end_time")
     personnel_id = data.get("personnel_id")
     new_shift = Shift(
@@ -476,39 +467,40 @@ def add_new_shift():
     )
     try:
         new_shift.create()
-        return (
-            jsonify(
-                message="Shift created successfully",
-                shift=ShiftSchema().dump(new_shift),
-            ),
-            201,
+        return socket.emit(
+            "shift added",
+            {
+                "message": "Shift created successfully",
+                "shift": ShiftSchema().dump(new_shift),
+            },
+            namespace="/nur_fur_admin",
         )
     except IntegrityError as e:
         db.session.rollback()
         logger.error(f"Failed to create shift. Integrity error: {e.orig}")
-        return jsonify(message="Failed to create shift"), 400
+        return socket.emit("shift added", {"message": "Failed to create shift"})
 
 
-@api_blueprint.route("/admin/shifts", methods=["GET"])
+@socket.on("admin_get_shifts", "/nur_fur_admin")
 # @admin_required()
 def get_shifts():
     # personnel = get_current_user()
     shifts = Shift.query.all()
     shift_list = ShiftSchema(many=True).dump(shifts)
-    return jsonify(shift_list), 200
+    return socket.emit("shift_list", shift_list, namespace="/nur_fur_admin")
 
 
-@api_blueprint.route("/shifts/<int:id>", methods=["GET"])
+@socket.on("shift", "/shifts")
 def get_single_shift(id):
     shift = Shift.query.get(id)
     if shift:
-        return jsonify(shift=ShiftSchema().dump(shift)), 200
+        return socket.emit("shift_resp", ShiftSchema().dump(shift))
     else:
-        return jsonify(error="Shift not found"), 404
+        return socket.emit("shift_resp", {"message": "Shift not found."})
 
 
-@api_blueprint.route("/shifts/<int:id>", methods=["PUT"])
-@jwt_required(optional=True)
+@socket.on("update_shift", "/nur_fur_admin")
+# @admin_required()
 def update_shift(id):
     data = request.get_json()
     shift = Shift.query.get(id)
@@ -517,25 +509,51 @@ def update_shift(id):
         start_time = data.get("start_time")
         end_time = data.get("end_time")
         shift.update(shift_name=shift_name, start_time=start_time, end_time=end_time)
-        return (
-            jsonify(
-                message="Shift updated successfully", shift=ShiftSchema().dump(shift)
-            ),
-            200,
+        return socket.emit(
+            "updated_shift", ShiftSchema().dump(shift), namespace="/nur_fur_admin"
         )
     else:
-        return jsonify(error="Shift not found"), 404
+        return socket.emit(
+            "updated_shift", {"message": "Shift not found."}, namespace="/nur_fur_admin"
+        )
 
 
-@api_blueprint.route("/shifts/<int:id>", methods=["DELETE"])
-@admin_required()
+@socket.on("delete_shift", "/nur_fur_admin")
+# @admin_required()
 def delete_shift(id):
     shift = Shift.query.get(id)
     if shift:
         shift.delete()
-        return jsonify(), 204
+        return socket.emit(
+            "deleted_shift",
+            {"message": "Shift deleted successfully."},
+            namespace="/nur_fur_admin",
+        )
     else:
-        return jsonify(error="Shift not found"), 404
+        return socket.emit(
+            "deleted_shift", {"message": "Shift not found."}, namespace="/nur_fur_admin"
+        )
+        
+
+@socket.on("alerts")
+@jwt_required()
+def read_alerts():
+    active_personnel = get_current_user()
+    alerts = Alert.query.filter_by(personnel_id=active_personnel.id).all() 
+    return socket.emit("fetch alerts", {"alerts": alerts})
+
+
+@socket.on("update alert")
+@jwt_required()
+def update_alert_status(id):
+    active_personnel = get_current_user()
+    alert = Alert.query.filter_by(personnel_id=active_personnel.id, id=id).first_or_404()
+    alert.update(status="read")
+    return socket.emit(
+        "updated alert",
+        {"message": "Alert status updated successfully."},
+    )
+
 
 
 app.register_blueprint(api_blueprint)
@@ -566,5 +584,5 @@ def token_in_blocklist_callback(_jwt_header, _jwt_payload):
 
 
 if __name__ == "__main__":
-    download_model(logger)
-    app.run()
+    # download_model(logger)
+    socket.run(app, debug=True, port=8000)
