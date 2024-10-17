@@ -13,7 +13,7 @@ from flask_jwt_extended import (
     get_jwt_identity,
     get_jwt,
     jwt_required,
-    verify_jwt_in_request,
+    verify_jwt_in_request
 )
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
@@ -43,7 +43,7 @@ db = SQLAlchemy(app)
 ma = Marshmallow(app)
 migrate = Migrate(app, db, "instance/migrations")
 jwt = JWTManager(app)
-socket = SocketIO(app, cors_allowed_origins=["http://127.0.0.1:5500"])
+socket = SocketIO(app, cors_allowed_origins="*")
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("app")
 file_handler = logging.FileHandler("app.log")
@@ -324,7 +324,7 @@ def sign_out():
 @socket.on("connect")
 def connect():
     try:
-        verify_jwt_in_request()
+        verify_jwt_in_request(locations=["query_string"])
         socket.emit("connected", "connected successfully")
     except Exception as e:
         print(e)    
@@ -386,12 +386,15 @@ def video_frame_upload(data):
                 # ).create()
 
         return socket.emit(
-            "uploaded frame", {"frame_bytes": frame_bytes, "detections": detections}
+            "processed frame", 
+            {"frame_bytes": frame_bytes, "detections": detections, "processed": True}
         )
     except IntegrityError as e:
         db.session.rollback()
         logger.error(f"Failed database operation. Integrity error: {e.orig}")
-        return socket.emit("uploaded frame", {"message": "e no work"})
+        return socket.emit(
+            "processed frame", {"message": "Failed to process frame", "processed": False}
+        )
 
 
 # Personnel API Endpoints
