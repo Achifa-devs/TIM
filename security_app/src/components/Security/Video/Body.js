@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import io from 'socket.io-client';
 import api from '../../../services/api';
+import { formToJSON } from 'axios';
 
 export default function Body() {
   const [videoURL, setVideoURL] = useState(null);
@@ -8,6 +10,9 @@ export default function Body() {
   const [imageURL, setImageURL] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [stream, setStream] = useState(null);
+  const [token, setToken] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
+  const [socket, setSocket] = useState(null);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -59,58 +64,86 @@ export default function Body() {
         setStream(null); // Clear the stream state
         setIsRecording(false); // Set recording state to false
       }
-    }
+    };
 
+  useEffect(() => {
+    if (!socket) return;
+    socket.on('processed frame', (response) => {
+      console.log('Frame processed:', response.data);
+      if (response.data.processed) {
+        const imageBlob = new Blob([response.data.frame_bytes], { type: 'image/jpeg' });
+        const imageURL = URL.createObjectURL(imageBlob);
+        setImageURL(imageURL);
+      } else {
+        console.log('Failed to process frame');
+      }
+    });
 
-  // Capture frames from the live video stream/upload and send to backend
-  function captureFrame(from) {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    console.log('Video ready state: ', video.readyState);
-
-    if (canvas && video && video.readyState === 4) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      // Draw the current video frame onto the canvas
-      console.log(`capturing Frames from ${from}`);
-      canvas.getContext('2d')
-        .drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // Convert the canvas to a Blob (image format) and send it to the server
-      canvas.toBlob((blob) => {
-        const formData = new FormData();
-        formData.append('frame', blob);
-
-        // Send the frame to the Flask backend and get the processed frame
-        api.post('/frame_upload/detect', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          responseType: 'blob',
-        })
-          .then((response) => {
-            console.log('Frame processed:', response.data);
-            const imageBlob = new Blob([response.data], { type: 'image/jpeg' });
-            const imageURL = URL.createObjectURL(imageBlob);
-            setImageURL(imageURL);
-          });
-      }, 'image/jpeg', 0.9);
-    }
-  }
+  }, [socket]);
 
 
   // Capture frames every 3500ms and send to the server
   useEffect(() => {
+    const captureFrame = (from) => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+  
+      if (!canvas || !video) {
+        console.error('Canvas or video element is not available');
+        return;
+      }
+  
+      if (video.readyState === 4) {
+        console.log(`Capturing frame from ${from}`);
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+  
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const formData = new FormData();
+            formData.append('frame', blob);
+            socket.emit('frame upload', formToJSON(formData));
+          }
+        }, 'image/jpeg', 0.9);
+      } else {
+        console.log('Video is not ready for capturing frames.');
+      }
+    };
+  
     let interval;
     if (isRecording || videoURL) {
       interval = setInterval(() => {
-        let from = isRecording ? "live video" : "video upload";
+        const from = isRecording ? "live video" : "video upload";
         captureFrame(from);
       }, 3500);
     }
     return () => clearInterval(interval);
-  }, [isRecording, videoURL]);
+  
+  }, [isRecording, videoURL, socket]); // Keep dependencies clean
+  
+
+  useEffect(() => {
+    const token = window.localStorage.getItem('accessToken');
+    if (token) {
+      console.log('token', token);
+      setToken(token);
+      setIsAuthenticated(true);
+      const socket = io('http://127.0.0.1:8000?jwt=' + token);
+      socket.on('connect', () => {
+        console.log('connected');
+        setSocket(socket);
+      });
+      socket.on('disconnect', () => {
+        console.log('disconnected');
+      });
+      return () => {
+        socket.close();
+      };
+    }
+  }, [isAuthenticated, token]);
 
 
   return (
