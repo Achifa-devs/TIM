@@ -1,9 +1,13 @@
 import React from 'react'
 import AddShiftOverlay from '../../../reusables/newShiftOverlay'
-export default function Summary() {
+
+export default function Summary({alerts}) {
+
+  const unreadAlerts = alerts.filter(alert => alert.status === "unread").length;
+  const readAlerts = alerts.length - unreadAlerts;
+  
   return (
     <>
-        
         <div className="inbox-summary" style={{display: 'flex', flexDirection: 'row', alignItems: 'center'}}>
             <section style={{display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-end'}}>
                 <div style={{height: '100%', width: '70px'}}>
@@ -25,13 +29,13 @@ export default function Summary() {
                 <div style={{display: 'flex',justifyContent: 'flex-end', padding: '0px', height: '100%', width: '100px', alignItems: 'flex-end'}}>
                     
                     <div style={{background: 'blueviolet', color: '#fff', fontWeight: '500', margin: '0px 10px -7px 0px', padding: '5px', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', borderRadius: '5px'}}>
-                        <small style={{fontWeight: '400', fontSize: 'x-small'}}><>30 Inbox</></small>
+                        <small style={{fontWeight: '400', fontSize: 'x-small'}}><>{alerts.length} Inbox</></small>
                     </div>
                     <div style={{background: 'blueviolet', color: '#fff', fontWeight: '500', margin: '0px 10px -7px 0px', padding: '5px', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', borderRadius: '5px'}}>
-                        <small style={{fontWeight: '400', fontSize: 'x-small'}}><>24 Read</></small>
+                        <small style={{fontWeight: '400', fontSize: 'x-small'}}><>{readAlerts} Read</></small>
                     </div>
                     <div style={{background: 'blueviolet', color: '#fff', fontWeight: '500', margin: '0px 10px -7px 0px', padding: '5px', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'row', borderRadius: '5px'}}>
-                        <small style={{fontWeight: '400', fontSize: 'x-small'}}><>24 Unread</></small>
+                        <small style={{fontWeight: '400', fontSize: 'x-small'}}><>{unreadAlerts} Unread</></small>
                     </div>
                 </div>
             </section>
