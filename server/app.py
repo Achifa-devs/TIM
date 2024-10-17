@@ -64,6 +64,7 @@ class Abstract:
     def create(self):
         db.session.add(self)
         db.session.commit()
+        return self
 
     def update(self, **kwargs):
         for k, v in kwargs.items():
@@ -368,7 +369,10 @@ def video_frame_upload(data):
 
                 # Send alert to personnel
                 # if Alert.can_create_alert(personnel.id):
-                #     Alert(message=class_name, personnel_id=1).create()
+                
+                    # new_alert = Alert(message=class_name, personnel_id=1).create()
+                    # alert = AlertSchema().dump(new_alert)
+                    # socket.emit("new alert", alert)
                 # else:
                 #     logger.info(
                 #         f"Skipping alert for {personnel.phone_number} due to time gap"
@@ -539,11 +543,12 @@ def delete_shift(id):
         
 
 @socket.on("alerts")
-@jwt_required()
+# @jwt_required()
 def read_alerts():
-    active_personnel = get_current_user()
-    alerts = Alert.query.filter_by(personnel_id=active_personnel.id).all() 
-    return socket.emit("fetch alerts", {"alerts": alerts})
+    # active_personnel = get_current_user()
+    alerts = Alert.query.all()
+    alerts_data = AlertSchema(many=True).dump(alerts)
+    return socket.emit("fetch alerts", {"alerts": alerts_data})
 
 
 @socket.on("update alert")
