@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import io from 'socket.io-client';
-import api from '../../../services/api';
+import soc from '../../../services/socket';
 import { formToJSON } from 'axios';
+
+const { socket } = soc;
 
 export default function Body() {
   const [videoURL, setVideoURL] = useState(null);
@@ -10,9 +11,6 @@ export default function Body() {
   const [imageURL, setImageURL] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [stream, setStream] = useState(null);
-  const [token, setToken] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
-  const [socket, setSocket] = useState(null);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -66,20 +64,17 @@ export default function Body() {
       }
     };
 
-  useEffect(() => {
-    if (!socket) return;
-    socket.on('processed frame', (response) => {
-      console.log('Frame processed:', response.data);
-      if (response.data.processed) {
-        const imageBlob = new Blob([response.data.frame_bytes], { type: 'image/jpeg' });
-        const imageURL = URL.createObjectURL(imageBlob);
-        setImageURL(imageURL);
-      } else {
-        console.log('Failed to process frame');
-      }
-    });
 
-  }, [socket]);
+  socket.on('processed frame', (response) => {
+    console.log('Frame processed:', response.data);
+    if (response.data.processed) {
+      const imageBlob = new Blob([response.data.frame_bytes], { type: 'image/jpeg' });
+      const imageURL = URL.createObjectURL(imageBlob);
+        setImageURL(imageURL);
+    } else {
+      console.log('Failed to process frame');
+    }
+  });
 
 
   // Capture frames every 3500ms and send to the server
@@ -122,29 +117,7 @@ export default function Body() {
     }
     return () => clearInterval(interval);
   
-  }, [isRecording, videoURL, socket]); // Keep dependencies clean
-  
-
-  useEffect(() => {
-    const token = window.localStorage.getItem('accessToken');
-    if (token) {
-      console.log('token', token);
-      setToken(token);
-      setIsAuthenticated(true);
-      const socket = io('http://127.0.0.1:8000?jwt=' + token);
-      socket.on('connect', () => {
-        console.log('connected');
-        setSocket(socket);
-      });
-      socket.on('disconnect', () => {
-        console.log('disconnected');
-      });
-      return () => {
-        socket.close();
-      };
-    }
-  }, [isAuthenticated, token]);
-
+  }, [isRecording, videoURL]); 
 
   return (
     <div className="video-upload-body">
