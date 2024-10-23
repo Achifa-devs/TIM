@@ -3,7 +3,7 @@ import random
 from datetime import datetime, timedelta
 from functools import wraps
 
-from flask import Blueprint, Flask, jsonify,request
+from flask import Blueprint, Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import (
     JWTManager,
@@ -13,7 +13,7 @@ from flask_jwt_extended import (
     get_jwt_identity,
     get_jwt,
     jwt_required,
-    verify_jwt_in_request
+    verify_jwt_in_request,
 )
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
@@ -64,11 +64,14 @@ class Abstract:
     def create(self):
         db.session.add(self)
         db.session.commit()
+        db.session.refresh(self)
+        return self
 
     def update(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
         db.session.commit()
+        db.session.refresh(self)
 
     def delete(self):
         db.session.delete(self)
@@ -98,15 +101,15 @@ class Alert(db.Model, Abstract):
     personnel_id = db.Column(db.Integer, db.ForeignKey("personnel.id"))
 
     def __init__(self, message, personnel_id):
-        self.message = f"Suspicious activity detected: {message}"
+        self.message = f"Suspicious activity detected lil bih: {message}"
         self.personnel_id = personnel_id
 
     def __repr__(self):
         return f"Alert(message='{self.message}', to='{self.to_personnel}')"
 
     def create(self):
-        super().create()
-        self.notify_personnel()
+        return super().create()
+        # self.notify_personnel()
 
     def notify_personnel(self):
         self._send_sms()
@@ -142,28 +145,6 @@ class Alert(db.Model, Abstract):
 
         # If there's no previous alert, send it
         return True
-
-
-class Shift(db.Model, Abstract):
-    id = db.Column(db.Integer, primary_key=True)
-    shift_name = db.Column(db.String(100), nullable=False)
-    start_time = db.Column(db.DateTime(timezone=True), nullable=False)
-    end_time = db.Column(db.DateTime(timezone=True), nullable=False)
-    status = db.Column(db.String(50), nullable=False, default="inactive")
-    created_at = db.Column(
-        db.DateTime(timezone=True), nullable=False, default=datetime.now
-    )
-
-    personnel_id = db.Column(db.Integer, db.ForeignKey("personnel.id"))
-
-    __table_args__ = (
-        UniqueConstraint(
-            "shift_name", "personnel_id", name="uix_shift_name_personnel_id"
-        ),
-    )
-
-    def __repr__(self):
-        return f"Shift(shift_name='{self.shift_name}', duration='{self.end_time - self.start_time}')"
 
 
 class Personnel(db.Model, Abstract):
@@ -203,8 +184,32 @@ class Personnel(db.Model, Abstract):
         ).first()
         if not active_shift:
             return None
-        personnel = cls.query.filter_by(id=active_shift.personnel_id).first()
-        return personnel
+        # personnel = cls.query.filter_by(id=active_shift.personnel_id).first()
+        
+        return cls.query.all().first()
+
+
+class Shift(db.Model, Abstract):
+    id = db.Column(db.Integer, primary_key=True)
+    shift_name = db.Column(db.String(99), nullable=False)
+    start_time = db.Column(db.DateTime(timezone=True), nullable=False)
+    end_time = db.Column(db.DateTime(timezone=True), nullable=False)
+    status = db.Column(db.String(49), nullable=False, default="inactive")
+    created_at = db.Column(
+        db.DateTime(timezone=True), nullable=False, default=datetime.now
+    )
+
+    personnel_id = db.Column(db.Integer, db.ForeignKey("personnel.id"))
+    
+    __table_args__ = (
+        UniqueConstraint(
+            "shift_name", "personnel_id", name="uix_shift_name_personnel_id"
+        ),
+    )
+
+    def __repr__(self):
+        return f"Shift(shift_name='{self.shift_name}', duration='{self.end_time - self.start_time}')"
+
 
 
 # SQLAlchemy Schemas
@@ -220,20 +225,22 @@ class AlertSchema(ma.SQLAlchemyAutoSchema):
         include_fk = True
 
 
-class ShiftSchema(ma.SQLAlchemyAutoSchema):
-    class Meta:
-        model = Shift
-        include_fk = True
-
-
 class PersonnelSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Personnel
         exclude = ("password_hash",)
 
-    shifts = ma.Nested(ShiftSchema, many=True)
+    shifts = ma.Nested("ShiftSchema", many=True)
     detections = ma.Nested(DetectionSchema, many=True)
     alerts = ma.Nested(AlertSchema, many=True)
+
+
+class ShiftSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Shift
+        include_fk = True
+       
+    personnel_on_shift = ma.Nested(PersonnelSchema, exclude=("shifts", "detections", "alerts"))
 
 
 with app.app_context():
@@ -285,14 +292,14 @@ def register():
             201,
         )
     except IntegrityError as e:
-        db.session.rollback()
+        db.session.rollback() 
         logger.error(f"Failed to create personnel. Integrity error: {e.orig}")
-        return jsonify(message="Failed to create personnel")
+        return jsonify(message="Failed to create personnel") 
 
 
-@api_blueprint.route("/login", methods=["POST"])
-def login():
-    data = request.get_json()
+@api_blueprint.route("/login", methods=["POST"]) 
+def login(): 
+    data = request.get_json() 
     email_address = data.get("email")
     password = data.get("password")
     personnel = Personnel.query.filter_by(email_address=email_address).first()
@@ -327,7 +334,7 @@ def connect():
         verify_jwt_in_request(locations=["query_string"])
         socket.emit("connected", "connected successfully")
     except Exception as e:
-        print(e)    
+        print(e)
         socket.emit("error", str(e))
 
 
@@ -346,9 +353,7 @@ def refresh_token():
     access_token = create_access_token(
         identity=current_user, additional_claims=additional_claims
     )
-    return socket.emit(
-        "refreshed", {"access_token": access_token}, namespace="/auth"
-    )
+    return socket.emit("refreshed", {"access_token": access_token}, namespace="/auth")
 
 
 # Video API Endpoints
@@ -357,7 +362,9 @@ def refresh_token():
 def video_frame_upload(data):
     frame_bytes = data.get("frame")
     if not frame_bytes:
-        return socket.emit("uploaded frame", {"message": "No file selected"})
+        return socket.emit(
+            "processed frame", {"message": "No file selected", "processed": False}
+        )
     try:
         # Process and run detections on the frame
         frame_bytes, detections = detect(frame_bytes)
@@ -367,12 +374,14 @@ def video_frame_upload(data):
                 personnel = Personnel.on_active_shift()
 
                 # Send alert to personnel
-                # if Alert.can_create_alert(personnel.id):
-                #     Alert(message=class_name, personnel_id=1).create()
-                # else:
-                #     logger.info(
-                #         f"Skipping alert for {personnel.phone_number} due to time gap"
-                #     )
+                if class_name:
+                    new_alert = Alert(message=class_name, personnel_id=1).create()
+                    alert = AlertSchema().dump(new_alert)
+                    socket.emit("new alert", alert)
+                else:
+                    logger.info(
+                        f"Skipping alert for {personnel.phone_number} due to time gap"
+                    )
                 # choices = "ABCDEFGHIJKLMNOPQRISTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz"
                 # filename = f"{datetime.now()}-{personnel.last_name}-{random.choices(choices)}"
                 # # Save the detection in the database
@@ -386,14 +395,15 @@ def video_frame_upload(data):
                 # ).create()
 
         return socket.emit(
-            "processed frame", 
-            {"frame_bytes": frame_bytes, "detections": detections, "processed": True}
+            "processed frame",
+            {"frame_bytes": frame_bytes, "detections": detections, "processed": True},
         )
     except IntegrityError as e:
         db.session.rollback()
         logger.error(f"Failed database operation. Integrity error: {e.orig}")
         return socket.emit(
-            "processed frame", {"message": "Failed to process frame", "processed": False}
+            "processed frame",
+            {"message": "Failed to process frame", "processed": False},
         )
 
 
@@ -444,119 +454,131 @@ def delete_personnel(id):
         )
 
 
-@socket.on("personnels", "/nur_fur_admin")
+@api_blueprint.route("/personnels", methods=["GET"])
 # @admin_required()
 def get_personnels():
     personnels = Personnel.query.all()
     personnel_list = PersonnelSchema(many=True).dump(personnels)
-    return socket.emit("personnel list", personnel_list, namespace="/nur_fur_admin")
+    return jsonify(personnel_list), 200
 
 
 # Shifts API Endpoints
-@socket.on("add shift", "/nur_fur_admin")
+# @socket.on("add_shift", "/nur_fur_admin")
 # @admin_required()
-def add_new_shift(data):
-    print(data)
+@api_blueprint.route("/admin/new-shift", methods=["POST"])
+def add_new_shift():
+    data = request.json
     shift_name = data.get("shift_name")
-    start_time = data.get("start_time")
-    print(start_time)
-    end_time = data.get("end_time")
+    start_time = datetime.strptime(data.get("start_time"), "%H:%M")
+    end_time = datetime.strptime(data.get("end_time"), "%H:%M")
     personnel_id = data.get("personnel_id")
-    new_shift = Shift(
-        shift_name=shift_name,
-        start_time=datetime.strptime(start_time, "%H:%M"),
-        end_time=datetime.strptime(end_time, "%H:%M"),
-        personnel_id=personnel_id,
-    )
+    now = datetime.now().replace(second=0, microsecond=0).time()
+    status = start_time.replace(second=0) <= datetime.strptime(str(now), "%H:%M:%S") <= end_time.replace(second=0)
     try:
-        new_shift.create()
-        return socket.emit(
-            "shift added",
+        new_shift = Shift(
+            shift_name=shift_name,
+            start_time=start_time,
+            end_time=end_time,
+            personnel_id=personnel_id,
+            status="active" if status else "inactive"
+        ).create()
+        socket.emit("shift added",
             {
-                "message": "Shift created successfully",
                 "shift": ShiftSchema().dump(new_shift),
+                "added":  True
             },
-            namespace="/nur_fur_admin",
         )
+        return jsonify("Shift added successfully"), 201
     except IntegrityError as e:
         db.session.rollback()
         logger.error(f"Failed to create shift. Integrity error: {e.orig}")
-        return socket.emit("shift added", {"message": "Failed to create shift"})
+        socket.emit(
+            "shift added", 
+            {"message": "Failed to create shift", "added": False},
+        )
+        return jsonify("Failed to create shift"), 400
 
 
-@socket.on("admin_get_shifts", "/nur_fur_admin")
+@socket.on("admin_get_shifts")
 # @admin_required()
 def get_shifts():
     # personnel = get_current_user()
     shifts = Shift.query.all()
     shift_list = ShiftSchema(many=True).dump(shifts)
-    return socket.emit("shift_list", shift_list, namespace="/nur_fur_admin")
+    return socket.emit("fetch shifts", shift_list)
 
 
-@socket.on("shift", "/shifts")
+@socket.on("shift")
 def get_single_shift(id):
-    shift = Shift.query.get(id)
-    if shift:
-        return socket.emit("shift_resp", ShiftSchema().dump(shift))
-    else:
-        return socket.emit("shift_resp", {"message": "Shift not found."})
+    shift = Shift.query.get_or_404(id)
+    return socket.emit("fetch shifts", ShiftSchema().dump(shift))
 
 
 @socket.on("update_shift", "/nur_fur_admin")
 # @admin_required()
 def update_shift(id):
     data = request.get_json()
-    shift = Shift.query.get(id)
-    if shift:
-        shift_name = data.get("shift_name")
-        start_time = data.get("start_time")
-        end_time = data.get("end_time")
-        shift.update(shift_name=shift_name, start_time=start_time, end_time=end_time)
-        return socket.emit(
-            "updated_shift", ShiftSchema().dump(shift), namespace="/nur_fur_admin"
-        )
-    else:
-        return socket.emit(
-            "updated_shift", {"message": "Shift not found."}, namespace="/nur_fur_admin"
-        )
+    shift = Shift.query.get_or_404(id)
+    shift_name = data.get("shift_name", shift.shift_name)
+    start_time = data.get("start_time", shift.start_time)
+    end_time = data.get("end_time", shift.end_time)
+    shift.update(shift_name=shift_name, start_time=start_time, end_time=end_time)
+    return socket.emit(
+        "updated_shift", 
+        {"updated_shift": ShiftSchema().dump(shift), "updated": True}, 
+        namespace="/nur_fur_admin"
+    )
+
+        
+@socket.on("update shift status", "/nur_fur_admin")
+# @admin_required()
+def update_shift_status(data):
+    id = data.get("shift_id")
+    shift = Shift.query.get_or_404(id)
+    status = data.get("status")
+    shift.update(status=status)
+    return socket.emit(
+        "updated_shift",
+        {"updated_shift": ShiftSchema().dump(shift), "updated": True}, 
+        namespace="/nur_fur_admin"
+    )
 
 
-@socket.on("delete_shift", "/nur_fur_admin")
+
+@socket.on("delete shift", "/nur_fur_admin")
 # @admin_required()
 def delete_shift(id):
-    shift = Shift.query.get(id)
-    if shift:
-        shift.delete()
-        return socket.emit(
-            "deleted_shift",
-            {"message": "Shift deleted successfully."},
-            namespace="/nur_fur_admin",
-        )
-    else:
-        return socket.emit(
-            "deleted_shift", {"message": "Shift not found."}, namespace="/nur_fur_admin"
-        )
-        
+    shift = Shift.query.get_or_404(id)
+    shift.delete()
+    return socket.emit(
+        "shift deleted",
+        {"message": "Shift deleted successfully."},
+        namespace="/nur_fur_admin",
+    )
 
+
+# Alert API Endpoints
 @socket.on("alerts")
-@jwt_required()
+# @jwt_required()
 def read_alerts():
-    active_personnel = get_current_user()
-    alerts = Alert.query.filter_by(personnel_id=active_personnel.id).all() 
-    return socket.emit("fetch alerts", {"alerts": alerts})
+    # active_personnel = get_current_user()
+    alerts = Alert.query.order_by(Alert.created_at.desc()).all()
+    alerts_data = AlertSchema(many=True).dump(alerts)
+    return socket.emit("fetch alerts", {"alerts": alerts_data})
 
 
 @socket.on("update alert")
 @jwt_required()
 def update_alert_status(id):
     active_personnel = get_current_user()
-    alert = Alert.query.filter_by(personnel_id=active_personnel.id, id=id).first_or_404()
+    alert = Alert.query.filter_by(
+        personnel_id=active_personnel.id, id=id
+    ).first_or_404()
     alert.update(status="read")
     return socket.emit(
         "updated alert",
         {"message": "Alert status updated successfully."},
     )
-
 
 
 app.register_blueprint(api_blueprint)

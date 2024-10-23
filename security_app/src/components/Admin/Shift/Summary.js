@@ -2,54 +2,55 @@ import React, { useEffect, useState } from 'react'
 import AddShiftOverlay from '../../../reusables/newShiftOverlay'
 import api from '../../../services/api'
 
+
 export default function Summary() {
 
     let [userList, setUserList] = useState([])
 
     useEffect(() => {
-        // function fetchUserData() {
-        api.get('/personnels', {})
+      // function fetchUserData() {
+      api.get('/personnels', {})
         .then((response) => {
-            setUserList(response.data)
+          console.log(response)
+          setUserList(response.data)
         })
-        .catch(err => {
+          .catch(err => {
             console.log(err)
-            
-        })
-        // }
-    
+          })
+          // }
     }, [])
 
     function handleShift() {
-        let e = document.querySelector('.shift-overlay')
-        if(e.hasAttribute('id')){
-            e.removeAttribute('id')
-        }else{
-            e.setAttribute('id', 'shift-overlay')
-        }
+      let e = document.querySelector('.shift-overlay')
+      if(e.hasAttribute('id')){
+          e.removeAttribute('id')
+      }else{
+          e.setAttribute('id', 'shift-overlay')
+      }
     }
 
     function handleShiftOverlay(e) {
-        if(e.target === e.currentTarget){
-            let e = document.querySelector('.shift-overlay')
-            e.removeAttribute('id')
-        }
+      if(e.target === e.currentTarget){
+          let e = document.querySelector('.shift-overlay')
+          e.removeAttribute('id')
+      }
     }
+
   return (
     <>
-        <div onClick={e=>handleShiftOverlay(e)} className="shift-overlay" style={{justifyContent: 'center', alignItems: 'center'}}>
-            <AddShiftOverlay users={userList} />
-        </div>
-        <div className="shift-summary">
-            <section>
-                <small><b>Add Your Shift For Approval From Admin</b></small>
-                <button onClick={e=>handleShift()} style={{width: 'auto', height: 'auto', padding: '5px'}}>
-                    <small>
-                        <b>Add Shift For Securities To Accept + </b>
-                    </small>
-                </button> 
-            </section>
-        </div>
+      <div onClick={e=>handleShiftOverlay(e)} className="shift-overlay" style={{justifyContent: 'center', alignItems: 'center'}}>
+        <AddShiftOverlay users={userList} />
+      </div>
+      <div className="shift-summary">
+        <section>
+          <small><b>Add Your Shift For Approval From Admin</b></small>
+          <button onClick={e=>handleShift()} style={{width: 'auto', height: 'auto', padding: '5px'}}>
+            <small>
+              <b>Add Shift For Securities To Accept + </b>
+            </small>
+          </button> 
+        </section>
+      </div>
     </>
   )
 }

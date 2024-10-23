@@ -190,3 +190,10 @@ button{
     margin: 3px 0 3px 0;
     font-size: 11px;
 }
+
+button:disabled {
+  background-color : tomato;
+  pointer-events: none;
+  color: darkgray;
+}
+  

@@ -5,6 +5,7 @@ import { formToJSON } from 'axios';
 const { socket } = soc;
 
 export default function Body() {
+  
   const [videoURL, setVideoURL] = useState(null);
   const [btntxt, setbtntxt] = useState('Upload video');
   const [detections, setDetections] = useState([]);
@@ -63,12 +64,14 @@ export default function Body() {
         setIsRecording(false); // Set recording state to false
       }
     };
-
-
+    
+  let count = 0;
   socket.on('processed frame', (response) => {
-    console.log('Frame processed:', response.data);
-    if (response.data.processed) {
-      const imageBlob = new Blob([response.data.frame_bytes], { type: 'image/jpeg' });
+    console.log('Frame processed:', response);
+    count += 1;
+    console.log(count, 'processed frames');
+    if (response.processed && response.frame_bytes) {
+      const imageBlob = new Blob([response.frame_bytes], { type: 'image/jpeg' });
       const imageURL = URL.createObjectURL(imageBlob);
         setImageURL(imageURL);
     } else {
@@ -76,18 +79,23 @@ export default function Body() {
     }
   });
 
-
   // Capture frames every 3500ms and send to the server
   useEffect(() => {
     const captureFrame = (from) => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-  
+      count += 1;
+      console.log(count, 'captured frames');
       if (!canvas || !video) {
         console.error('Canvas or video element is not available');
         return;
       }
-  
+
+      if (video.paused || video.ended) {
+        console.log('Video is paused or ended, skipping frame capture.');
+        return;
+      }
+      
       if (video.readyState === 4) {
         console.log(`Capturing frame from ${from}`);
         canvas.width = video.videoWidth;
@@ -95,16 +103,18 @@ export default function Body() {
   
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  
+        
         canvas.toBlob((blob) => {
           if (blob) {
             const formData = new FormData();
+            console.log(blob)
             formData.append('frame', blob);
             socket.emit('frame upload', formToJSON(formData));
           }
         }, 'image/jpeg', 0.9);
       } else {
         console.log('Video is not ready for capturing frames.');
+        setbtntxt('Upload Video')
       }
     };
   
@@ -112,17 +122,25 @@ export default function Body() {
     if (isRecording || videoURL) {
       interval = setInterval(() => {
         const from = isRecording ? "live video" : "video upload";
-        captureFrame(from);
-      }, 3500);
+
+        if (videoRef.current.ended) {
+          console.log('Video has ended, clearing interval.');
+          clearInterval(interval);  // Stop capturing frames when video ends
+        } else {
+          captureFrame(from);
+        }
+      }, 3000);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval)
+    };
   
   }, [isRecording, videoURL]); 
 
   return (
     <div className="video-upload-body">
       <section className="body-cnt">
-        <section className="video-cnt">
+        <section className="video-cnt" style={{ margin: '0 auto', width: '50%' }}>
           <div className="input-cnt">
             <input
               onChange={uploadVideo}
@@ -133,6 +151,11 @@ export default function Body() {
               id="file"
             />
           </div>
+          <div className="btn-cnt" style={{ margin: '1rem 0'}}> 
+            <label htmlFor="file">{btntxt}</label>
+            <button onClick={startLiveCam} hidden={isRecording} disabled={isRecording}>Start Live Monitoring</button>
+            <button onClick={stopLiveCam} hidden={!isRecording} disabled={!isRecording}>Stop Live Monitoring</button>
+          </div>
           <div className="live-feed">
             {(videoURL || isRecording) && (
               <video
@@ -141,9 +164,8 @@ export default function Body() {
                 autoPlay
                 muted
                 src={videoURL}
-                style={{ width: '70%', height: 'auto' }}
-              >
-              </video>
+                style={{ width: '70%', height: '65%', margin: '0 auto' }}
+              ></video>
             )}
           </div>
           <canvas
@@ -172,11 +194,6 @@ export default function Body() {
               </div>
             </div>
           )}
-          <div className="btn-cnt">
-            <label htmlFor="file">{btntxt}</label>
-            <button onClick={startLiveCam} hidden={isRecording} disabled={isRecording}>Start Live Monitoring</button>
-            <button onClick={stopLiveCam} hidden={!isRecording} disabled={!isRecording}>Stop Live Monitoring</button>
-          </div>
           {/* canvas for frame capturing */}
         </section>
       </section>
