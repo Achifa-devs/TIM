@@ -382,6 +382,15 @@ def video_frame_upload(data):
                     logger.info(
                         f"Skipping alert for {personnel.phone_number} due to time gap"
                     )
+                # if Alert.can_create_alert(personnel.id):
+                
+                    # new_alert = Alert(message=class_name, personnel_id=1).create()
+                    # alert = AlertSchema().dump(new_alert)
+                    # socket.emit("new alert", alert)
+                # else:
+                #     logger.info(
+                #         f"Skipping alert for {personnel.phone_number} due to time gap"
+                #     )
                 # choices = "ABCDEFGHIJKLMNOPQRISTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz"
                 # filename = f"{datetime.now()}-{personnel.last_name}-{random.choices(choices)}"
                 # # Save the detection in the database
@@ -611,3 +620,4 @@ def token_in_blocklist_callback(_jwt_header, _jwt_payload):
 if __name__ == "__main__":
     # download_model(logger)
     socket.run(app, debug=True, port=8000)
+
