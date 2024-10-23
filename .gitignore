@@ -2,6 +2,7 @@
 node_modules
 .vscode
 .idea
+.vim
 venvT
 /server/venvT/
 server/venv
