@@ -28,7 +28,7 @@ export default function Body({ shifts }) {
           adminSocket.emit('update shift status', { shift_id: shift.id, status: 'inactive' });
           return { ...shift, status: 'inactive' };
         } else {
-          return shift;
+          return { ...shift, status: 'inactive'};
         };
       });
 

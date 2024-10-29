@@ -1,5 +1,6 @@
-import logging, os, requests
-import random
+import logging
+import os
+import requests
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -23,7 +24,7 @@ from sqlalchemy import UniqueConstraint, and_
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from util import detect, download_model
+from util import detect
 
 
 app = Flask(__name__)
@@ -186,7 +187,7 @@ class Personnel(db.Model, Abstract):
             return None
         # personnel = cls.query.filter_by(id=active_shift.personnel_id).first()
         
-        return cls.query.all().first()
+        return cls.query.first()
 
 
 class Shift(db.Model, Abstract):
@@ -288,6 +289,7 @@ def register():
             jsonify(
                 message="Personnel added successfully",
                 personnel=PersonnelSchema().dump(new_personnel),
+                created=True
             ),
             201,
         )
@@ -418,9 +420,9 @@ def video_frame_upload(data):
 
 # Personnel API Endpoints
 @api_blueprint.route("/profile", methods=["GET"])
-@jwt_required()
+# @jwt_required()
 def get_current_personnel():
-    obj = get_current_user()
+    obj = Personnel.query.first()
     personnel = PersonnelSchema().dump(obj)
     return jsonify(info=personnel), 200
 
@@ -439,7 +441,8 @@ def add_personnel_phone_number(data):
         return socket.emit(
             "added phone",
             {
-                "error": "Invalid phone number. Please enter a valid 11-digit phone number."
+                "error": "Invalid phone number. Please enter a valid 11-digit phone number.",
+                "added": True
             },
         )
 
@@ -447,20 +450,13 @@ def add_personnel_phone_number(data):
 @socket.on("delete personnel", "/nur_fur_admin")
 # @admin_required()
 def delete_personnel(id):
-    personnel = Personnel.query.get(id)
-    if personnel:
-        personnel.delete()
-        return socket.emit(
-            "deleted_personnel",
-            {"message": "Personnel deleted successfully."},
-            namespace="/nur_fur_admin",
-        )
-    else:
-        return socket.emit(
-            "deleted_personnel",
-            {"message": "Personnel not found."},
-            namespace="/nur_fur_admin",
-        )
+    personnel = Personnel.query.get_or_404(id)
+    personnel.delete()
+    return socket.emit(
+        "deleted_personnel",
+        {"message": "Personnel deleted successfully."},
+        namespace="/nur_fur_admin",
+    )
 
 
 @api_blueprint.route("/personnels", methods=["GET"])

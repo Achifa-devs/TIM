@@ -15,7 +15,7 @@ export default function Body({info}) {
                     &nbsp;
 
                     <div>
-                        <small>{info?.fname}</small>
+                        <small>{info?.first_name}</small>
                     </div>
                 </section>
 
@@ -31,7 +31,7 @@ export default function Body({info}) {
                     &nbsp;
 
                     <div>
-                        <small>{info?.lname}</small>
+                        <small>{info?.last_name}</small>
                     </div>
                 </section>
 
@@ -48,7 +48,7 @@ export default function Body({info}) {
                     &nbsp;
 
                     <div>
-                        <small>{info?.email}</small>
+                        <small>{info?.email_address}</small>
                     </div>
                 </section>
 
@@ -64,7 +64,7 @@ export default function Body({info}) {
                     &nbsp;
 
                     <div>
-                        <small>{info?.phone}</small>
+                        <small>{info?.phone_number}</small>
                     </div>
                 </section>
 

@@ -3,14 +3,14 @@ import soc from '../../../services/socket'
 
 const { adminSocket } = soc;
 
-export default function Body({shifts}) {
+export default function Body({ shifts }) {
 
   const deleteShift = (shiftId) => {
     adminSocket.emit("delete shift", shiftId)
   }
 
-  
-const [currentShiftList, setCurrentShiftList] = useState([])
+
+  const [currentShiftList, setCurrentShiftList] = useState([])
 
   useEffect(() => {
 
@@ -23,7 +23,7 @@ const [currentShiftList, setCurrentShiftList] = useState([])
         if (endTime.toLocaleTimeString() < startTime.toLocaleTimeString()) {
           endTime.setDate(endTime.getDate() + 1); // Shift end_time to the next day
         }
-  
+
         // Check if the current time is within the shift's start and end times
         if (now >= startTime.toLocaleTimeString() && now <= endTime.toLocaleTimeString() && shift.status === 'inactive') {
           adminSocket.emit('update shift status', { shift_id: shift.id, status: 'active' });
@@ -32,7 +32,7 @@ const [currentShiftList, setCurrentShiftList] = useState([])
           adminSocket.emit('update shift status', { shift_id: shift.id, status: 'inactive' });
           return { ...shift, status: 'inactive' };
         } else {
-          return shift;
+          return { ...shift, status: 'inactive' };
         };
       });
 
@@ -41,12 +41,12 @@ const [currentShiftList, setCurrentShiftList] = useState([])
 
 
     checkShifts(new Date().toLocaleTimeString());
-    
+
     // Every 5 mins, check if shifts are active or closed
     const intervalId = setInterval(() => {
       const now = new Date().toLocaleTimeString();
-      checkShifts(now); 
-    }, 300000); 
+      checkShifts(now);
+    }, 300000);
 
     return () => clearInterval(intervalId);
   }, [shifts]);
@@ -62,10 +62,10 @@ const [currentShiftList, setCurrentShiftList] = useState([])
               return (
                 <>
                   {isActive.map((shift, index) => (
-                    <div 
-                       key={index}
-                       style={{ display: 'inline-block' }}
-                        >
+                    <div
+                      key={index}
+                      style={{ display: 'inline-block' }}
+                    >
                       <b style={{ textTransform: 'capitalize' }}>{shift.shift_name}</b>
                       <button
                         style={{
@@ -87,26 +87,31 @@ const [currentShiftList, setCurrentShiftList] = useState([])
                           {shift.end_time ? shift.end_time.split('T')[1] : 'N/A'}
                         </small>
                         <br></br>
-                        <small>Assigned to {shift.personnel_on_shift.first_name} {shift.personnel_on_shift.last_name}</small>                        
+                        <small>Assigned to {shift.personnel_on_shift.first_name} {shift.personnel_on_shift.last_name}</small>
                       </div>
                     </div>
                   ))}
                 </>
               );
-            } 
+            }
           })()}
         </section>
         <ul>
-          { Array.isArray(currentShiftList) && currentShiftList.length > 0 ? (
+          {Array.isArray(currentShiftList) && currentShiftList.length > 0 ? (
             currentShiftList.filter(shift => shift.status === 'inactive').map((shift, index) => (
               <li style={{ marginBottom: '10px' }} key={index}>
                 <section>
                   <div>
                     <b style={{ textTransform: 'capitalize' }}>{shift.shift_name}</b>
-                    { shift.status === 'active' && 
-                      <button style={{background: 'green', margin: '0 12px', height: 'auto', width: 'auto', padding: '5px'}}>
-                        Active
-                      </button>
+                    {shift.status === 'active' &&
+                      <div>
+                        <button style={{ background: 'green', margin: '0 12px', height: 'auto', width: 'auto', padding: '5px' }}>
+                          Active
+                        </button>
+                        <button onClick={() => deleteShift(shift.id)} style={{ background: 'red', height: 'auto', width: 'auto', padding: '5px' }}>
+                          End & Close Shift
+                        </button>
+                      </div>
                     }
                   </div>
                   <div>
@@ -116,7 +121,7 @@ const [currentShiftList, setCurrentShiftList] = useState([])
                   </div>
                   <div>
                     <small>
-                      {shift.start_time ? shift.start_time.split('T')[1] : 'N/A'} - 
+                      {shift.start_time ? shift.start_time.split('T')[1] : 'N/A'} -
                       {shift.end_time ? shift.end_time.split('T')[1] : 'N/A'}
                     </small>
                   </div>

@@ -1,6 +1,8 @@
 import React from 'react'
 import AddShiftOverlay from '../../../reusables/newShiftOverlay'
 import myImg from '../../../assets/WhatsApp Image 2023-08-10 at 19.54.34.jpg'
+
+
 export default function Summary({info}) {
 
   return (
@@ -24,10 +26,10 @@ export default function Summary({info}) {
                 <section style={{justifyContent: 'flex-end', padding: '0px'}}>
                     
                     <div>
-                        <small style={{fontWeight: '400'}}><>Joined {new Date(info?.created_at).toLocaleString()}</></small>
+                        <small style={{fontWeight: '400'}}><>Joined {new Date(info?.joined_at).toLocaleString()}</></small>
                     </div>
                     <div>
-                        <small style={{fontWeight: '400'}}><>ID :  TIM-{info?.security_id}</></small>
+                        <small style={{fontWeight: '400'}}><>ID :  TIM-{info?.id}</></small>
                     </div>
                 </section>
             </section>
