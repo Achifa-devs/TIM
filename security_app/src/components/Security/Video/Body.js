@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import soc from '../../../services/socket';
+import getSocket from '../../../services/socket';
 import { formToJSON } from 'axios';
 
-const { socket } = soc;
+
+const { socket } = getSocket;
 
 export default function Body() {
   

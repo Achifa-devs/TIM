@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import soc from '../../../services/socket';
+import getSocket from '../../../services/socket';
 
-const { socket } = soc;
+const { socket } = getSocket;
+
 
 export default function Body({alerts}) {
   // const [alerts, setAlerts] = useState([]);

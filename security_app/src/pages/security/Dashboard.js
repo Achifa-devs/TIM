@@ -1,6 +1,8 @@
 import React from 'react'
 import img from '../../assets/crime1.jpg'
 import SecurityLayout from '../../layouts/security'
+
+
 export default function Dashboard() {
   return (
     <>

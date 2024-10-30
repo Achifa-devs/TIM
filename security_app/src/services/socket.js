@@ -30,6 +30,6 @@ adminSocket.on('disconnect', () => {
   console.log('disconnected');
 });
 
-const soc = { socket, adminSocket };
+const getSocket = { socket, adminSocket };
 
-export default soc;
+export default getSocket;

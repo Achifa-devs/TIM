@@ -1,7 +1,8 @@
 import { React, useEffect, useState } from 'react'
-import soc from '../../../services/socket'
+import getSocket from '../../../services/socket'
 
-const { adminSocket } = soc;
+
+const { adminSocket } = getSocket;
 
 export default function Body({ shifts }) {
 
@@ -24,16 +25,21 @@ export default function Body({ shifts }) {
           endTime.setDate(endTime.getDate() + 1); // Shift end_time to the next day
         }
 
-        // Check if the current time is within the shift's start and end times
-        if (now >= startTime.toLocaleTimeString() && now <= endTime.toLocaleTimeString() && shift.status === 'inactive') {
-          adminSocket.emit('update shift status', { shift_id: shift.id, status: 'active' });
-          return { ...shift, status: 'active' };
-        } else if (now >= startTime.toLocaleTimeString() && now >= endTime.toLocaleTimeString() && shift.status === 'active') {
-          adminSocket.emit('update shift status', { shift_id: shift.id, status: 'inactive' });
-          return { ...shift, status: 'inactive' };
-        } else {
-          return { ...shift, status: 'inactive' };
-        };
+        if (shift.status === 'active') {
+          if (now >= startTime.toLocaleTimeString() && now <= endTime.toLocaleTimeString()) {
+            return shift;
+          } else {
+            adminSocket.emit('update shift status', { shift_id: shift.id, status: 'inactive' })
+            return { ...shift, status: 'inactive' };
+          }
+        } else { // Shift status is not active (inactive)
+          if (now >= startTime.toLocaleTimeString() && now <= endTime.toLocaleTimeString()) {
+            adminSocket.emit('update shift status', { shift_id: shift.id, status: 'active' })
+            return { ...shift, status: 'active' };
+          } else {
+            return shift;
+          }
+        }
       });
 
       setCurrentShiftList(updatedShifts)

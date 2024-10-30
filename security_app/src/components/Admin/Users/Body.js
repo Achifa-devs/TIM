@@ -54,7 +54,7 @@ function handleShiftOverlay(e) {
             users.map((item, index) => 
             <li key={index}> 
                <div>
-                {index + 1}. &nbsp;&nbsp; {`${item.first_name} ${item.last_name}`}  <small style={{color: item.is_active ? 'green':'red', background: '#fff', padding: '3px 8px', borderRadius: '2px', fontWeight: '500'}}>{item.is_active ? "online" : "offline"} </small>
+                {index + 1}. &nbsp;&nbsp; {`${item.first_name} ${item.last_name}`}  <small style={{color: item.is_active ? 'green':'red', background: '#fff', padding: '3px 8px', borderRadius: '2px', fontWeight: '500'}}>{item.last_active_at ? "online" : "offline"} </small>
                </div>
                <div style={{textAlign: 'right'}}>
                  <div>

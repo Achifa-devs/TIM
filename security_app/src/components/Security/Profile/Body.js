@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function Body({info}) {
+export default function Body({user}) {
   return (
     <>
       <div className="profile-body">
@@ -15,7 +15,7 @@ export default function Body({info}) {
                     &nbsp;
 
                     <div>
-                        <small>{info?.first_name}</small>
+                        <small>{user?.first_name}</small>
                     </div>
                 </section>
 
@@ -31,7 +31,7 @@ export default function Body({info}) {
                     &nbsp;
 
                     <div>
-                        <small>{info?.last_name}</small>
+                        <small>{user?.last_name}</small>
                     </div>
                 </section>
 
@@ -48,7 +48,7 @@ export default function Body({info}) {
                     &nbsp;
 
                     <div>
-                        <small>{info?.email_address}</small>
+                        <small>{user?.email_address}</small>
                     </div>
                 </section>
 
@@ -64,7 +64,7 @@ export default function Body({info}) {
                     &nbsp;
 
                     <div>
-                        <small>{info?.phone_number}</small>
+                        <small>{user?.phone_number}</small>
                     </div>
                 </section>
 

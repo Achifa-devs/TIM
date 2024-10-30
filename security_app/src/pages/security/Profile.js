@@ -25,8 +25,8 @@ export default function Profile() {
     <>
       <SecurityLayout>
         <div className="profile">
-          <Summary info={user} />
-          <Body info={user} />
+          <Summary user={user} />
+          <Body user={user} />
         </div>
 
       </SecurityLayout>

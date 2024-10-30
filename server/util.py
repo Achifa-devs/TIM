@@ -1,6 +1,8 @@
-import math, os
+import math
+import os
 
-import boto3, cv2
+import boto3
+import cv2
 from botocore.config import Config
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
@@ -37,7 +39,7 @@ def get_b2_resource():
     return b2
 
 
-def download_model(logger=None):
+def download_model(logger):
     if not os.path.exists(MODEL_FILE_PATH):
         logger.info(f"Downloading model weights to {MODEL_FILE_PATH}")
         b2 = get_b2_resource()
