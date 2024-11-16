@@ -2,10 +2,11 @@ import logging
 import os
 import requests
 from datetime import datetime, timedelta
-from functools import wraps
+from functools import partial, wraps
 
 from flask import Blueprint, Flask, jsonify, request
 from flask_cors import CORS
+from flask_executor import Executor
 from flask_jwt_extended import (
     JWTManager,
     create_access_token,
@@ -35,16 +36,21 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///TIMSec.db"
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(seconds=3600)
 app.config["JSON_SORT_KEYS"] = False
 app.config["ALERT_TIME_GAP"] = timedelta(minutes=10)
+app.config["EXECUTOR_TYPE"] = "process"
+app.config["EXECUTOR_MAX_WORKERS"] = 5
+
 
 CORS(
     app,
     resources={r"/api/v1/*": {"origins": "*", "supports_credentials": True}},
 )
+executor = Executor(app)
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
 migrate = Migrate(app, db, "instance/migrations")
 jwt = JWTManager(app)
 socket = SocketIO(app, cors_allowed_origins="*")
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("app")
 file_handler = logging.FileHandler("app.log")
@@ -98,6 +104,7 @@ class Alert(db.Model, Abstract):
     message = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime(timezone=True), default=datetime.now)
     status = db.Column(db.String(50), nullable=False, default="unread")
+    state = db.Column(db.String(20), nullable=True, default="display")
 
     personnel_id = db.Column(db.Integer, db.ForeignKey("personnel.id"))
 
@@ -186,7 +193,7 @@ class Personnel(db.Model, Abstract):
         if not active_shift:
             return None
         # personnel = cls.query.filter_by(id=active_shift.personnel_id).first()
-        
+
         return cls.query.first()
 
 
@@ -201,7 +208,7 @@ class Shift(db.Model, Abstract):
     )
 
     personnel_id = db.Column(db.Integer, db.ForeignKey("personnel.id"))
-    
+
     __table_args__ = (
         UniqueConstraint(
             "shift_name", "personnel_id", name="uix_shift_name_personnel_id"
@@ -210,7 +217,6 @@ class Shift(db.Model, Abstract):
 
     def __repr__(self):
         return f"Shift(shift_name='{self.shift_name}', duration='{self.end_time - self.start_time}')"
-
 
 
 # SQLAlchemy Schemas
@@ -240,8 +246,10 @@ class ShiftSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Shift
         include_fk = True
-       
-    personnel_on_shift = ma.Nested(PersonnelSchema, exclude=("shifts", "detections", "alerts"))
+
+    personnel_on_shift = ma.Nested(
+        PersonnelSchema, exclude=("shifts", "detections", "alerts")
+    )
 
 
 with app.app_context():
@@ -289,19 +297,19 @@ def register():
             jsonify(
                 message="Personnel added successfully",
                 personnel=PersonnelSchema().dump(new_personnel),
-                created=True
+                created=True,
             ),
             201,
         )
     except IntegrityError as e:
-        db.session.rollback() 
+        db.session.rollback()
         logger.error(f"Failed to create personnel. Integrity error: {e.orig}")
-        return jsonify(message="Failed to create personnel") 
+        return jsonify(message="Failed to create personnel")
 
 
-@api_blueprint.route("/login", methods=["POST"]) 
-def login(): 
-    data = request.get_json() 
+@api_blueprint.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
     email_address = data.get("email")
     password = data.get("password")
     personnel = Personnel.query.filter_by(email_address=email_address).first()
@@ -359,56 +367,59 @@ def refresh_token():
 
 
 # Video API Endpoints
+def handle_detection_result(future, frame_bytes):
+    try:
+        # Get the result once the task is done
+        processed_frame_bytes, detections = future.result()
+
+        # Handle detections
+        if processed_frame_bytes and detections:
+            new_alert = Alert(message=detections, personnel_id=1).create()
+            logger.info("Sending processed frame to the client")
+            return socket.emit(
+                "processed frame",
+                {
+                    "original_frame_bytes": frame_bytes,
+                    "processed_frame_bytes": processed_frame_bytes,
+                    "detections": detections,
+                    "processed": True,
+                },
+            )
+
+    except Exception as e:
+        logger.error(f"Error in background task: {e}")
+        return socket.emit(
+            "processed frame",
+            {"message": "Failed to process frame", "processed": False},
+        )
+
+
 @socket.on("frame upload")
 # @jwt_required()
 def video_frame_upload(data):
     frame_bytes = data.get("frame")
     if not frame_bytes:
         return socket.emit(
-            "processed frame", {"message": "No file selected", "processed": False}
-        )
-    try:
-        # Process and run detections on the frame
-        frame_bytes, detections = detect(frame_bytes)
-        if frame_bytes and detections:
-            for detection in detections:
-                class_name, conf = detection
-                personnel = Personnel.on_active_shift()
-
-                # Send alert to personnel
-                if class_name:
-                    new_alert = Alert(message=class_name, personnel_id=1).create()
-                    alert = AlertSchema().dump(new_alert)
-                    socket.emit("new alert", alert)
-                else:
-                    logger.info(
-                        f"Skipping alert for {personnel.phone_number} due to time gap"
-                    )
-                # if Alert.can_create_alert(personnel.id):
-                
-                    # new_alert = Alert(message=class_name, personnel_id=1).create()
-                    # alert = AlertSchema().dump(new_alert)
-                    # socket.emit("new alert", alert)
-                # else:
-                #     logger.info(
-                #         f"Skipping alert for {personnel.phone_number} due to time gap"
-                #     )
-                # choices = "ABCDEFGHIJKLMNOPQRISTUVWXYZ1234567890abcdefghijklmnopqrstuvwxyz"
-                # filename = f"{datetime.now()}-{personnel.last_name}-{random.choices(choices)}"
-                # # Save the detection in the database
-                # to_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-                # Detection(
-                #     classname=class_name,
-                #     frame=to_path,
-                #     personnel_id=1,
-                #     detected_at=datetime.now(),
-                #     conf_score=conf,
-                # ).create()
-
-        return socket.emit(
             "processed frame",
-            {"frame_bytes": frame_bytes, "detections": detections, "processed": True},
+            {"message": "No file selected", "processed": False, "processing": True},
         )
+
+    try:
+        # Submit the background task to process the frame
+        print("Received and submitted frame for processing")
+        future = executor.submit(detect, frame_bytes)
+
+        # Add a done callback to handle the result once the task is complete
+        # The done callback function expects only one argument, using `partial` to pass extra args
+        # to the callback
+        partial_handle_result = partial(
+            handle_detection_result, frame_bytes=frame_bytes
+        )
+        future.add_done_callback(partial_handle_result)
+        return socket.emit(
+            "processed frame", {"message": "Processing started", "processed": False}
+        )
+
     except IntegrityError as e:
         db.session.rollback()
         logger.error(f"Failed database operation. Integrity error: {e.orig}")
@@ -442,7 +453,7 @@ def add_personnel_phone_number(data):
             "added phone",
             {
                 "error": "Invalid phone number. Please enter a valid 11-digit phone number.",
-                "added": True
+                "added": True,
             },
         )
 
@@ -478,27 +489,29 @@ def add_new_shift():
     end_time = datetime.strptime(data.get("end_time"), "%H:%M")
     personnel_id = data.get("personnel_id")
     now = datetime.now().replace(second=0, microsecond=0).time()
-    status = start_time.replace(second=0) <= datetime.strptime(str(now), "%H:%M:%S") <= end_time.replace(second=0)
+    status = (
+        start_time.replace(second=0)
+        <= datetime.strptime(str(now), "%H:%M:%S")
+        <= end_time.replace(second=0)
+    )
     try:
         new_shift = Shift(
             shift_name=shift_name,
             start_time=start_time,
             end_time=end_time,
             personnel_id=personnel_id,
-            status="active" if status else "inactive"
+            status="active" if status else "inactive",
         ).create()
-        socket.emit("shift added",
-            {
-                "shift": ShiftSchema().dump(new_shift),
-                "added":  True
-            },
+        socket.emit(
+            "shift added",
+            {"shift": ShiftSchema().dump(new_shift), "added": True},
         )
         return jsonify("Shift added successfully"), 201
     except IntegrityError as e:
         db.session.rollback()
         logger.error(f"Failed to create shift. Integrity error: {e.orig}")
         socket.emit(
-            "shift added", 
+            "shift added",
             {"message": "Failed to create shift", "added": False},
         )
         return jsonify("Failed to create shift"), 400
@@ -519,6 +532,16 @@ def get_single_shift(id):
     return socket.emit("fetch shifts", ShiftSchema().dump(shift))
 
 
+@api_blueprint.get("/shifts/current")
+def get_active_shift():
+    shift = Shift.query.filter(
+        Shift.status == "active", Shift.start_time <= datetime.now()
+    ).first()
+    active_shift = ShiftSchema().dump(shift) if shift else None
+
+    return jsonify({"shift": active_shift, "is_active": True if shift else False})
+
+
 @socket.on("update_shift", "/nur_fur_admin")
 # @admin_required()
 def update_shift(id):
@@ -529,12 +552,12 @@ def update_shift(id):
     end_time = data.get("end_time", shift.end_time)
     shift.update(shift_name=shift_name, start_time=start_time, end_time=end_time)
     return socket.emit(
-        "updated_shift", 
-        {"updated_shift": ShiftSchema().dump(shift), "updated": True}, 
-        namespace="/nur_fur_admin"
+        "updated_shift",
+        {"updated_shift": ShiftSchema().dump(shift), "updated": True},
+        namespace="/nur_fur_admin",
     )
 
-        
+
 @socket.on("update shift status", "/nur_fur_admin")
 # @admin_required()
 def update_shift_status(data):
@@ -544,10 +567,9 @@ def update_shift_status(data):
     shift.update(status=status)
     return socket.emit(
         "updated_shift",
-        {"updated_shift": ShiftSchema().dump(shift), "updated": True}, 
-        namespace="/nur_fur_admin"
+        {"updated_shift": ShiftSchema().dump(shift), "updated": True},
+        namespace="/nur_fur_admin",
     )
-
 
 
 @socket.on("delete shift", "/nur_fur_admin")
@@ -567,22 +589,27 @@ def delete_shift(id):
 # @jwt_required()
 def read_alerts():
     # active_personnel = get_current_user()
-    alerts = Alert.query.order_by(Alert.created_at.desc()).all()
+    alerts = (
+        Alert.query.filter_by(state="display").order_by(Alert.created_at.desc()).all()
+    )
     alerts_data = AlertSchema(many=True).dump(alerts)
     return socket.emit("fetch alerts", {"alerts": alerts_data})
 
 
 @socket.on("update alert")
-@jwt_required()
-def update_alert_status(id):
-    active_personnel = get_current_user()
+# @jwt_required()
+def update_alert_status(data):
+    # active_personnel = get_current_user()
     alert = Alert.query.filter_by(
-        personnel_id=active_personnel.id, id=id
+        # personnel_id=active_personnel.id,
+        id=data.get("id")
     ).first_or_404()
-    alert.update(status="read")
+    status = data.get("status", alert.status)
+    state = data.get("state", alert.state)
+    alert.update(status=status, state=state)
     return socket.emit(
         "updated alert",
-        {"message": "Alert status updated successfully."},
+        {"message": "Alert status updated."},
     )
 
 
@@ -616,4 +643,3 @@ def token_in_blocklist_callback(_jwt_header, _jwt_payload):
 if __name__ == "__main__":
     # download_model(logger)
     socket.run(app, debug=True, port=8000)
-
