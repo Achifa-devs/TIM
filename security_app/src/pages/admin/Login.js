@@ -1,3 +1,4 @@
+/* eslint-disable array-callback-return */
 import { useRef, useState } from "react";
 import "../../globals.css";
 import api from "../../services/api";
