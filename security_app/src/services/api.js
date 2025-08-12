@@ -1,32 +1,30 @@
-import axios from 'axios';
-import { jwtDecode } from "jwt-decode"
-
+/* eslint-disable no-unused-vars */
+import axios from "axios";
 
 const api = axios.create({
   // baseURL: 'https://timsec.onrender.com/api/v1',
-  baseURL: 'http://localhost:5000/api/v1',
+  baseURL: "http://localhost:5000/api/v1",
 });
 
-const openPaths = ['/login', '/signup'];
-
+const openPaths = ["/login", "/signup"];
 
 function refreshAccessToken() {
-  console.log('Refreshing access token...');
-  api.post('/auth/refresh', {
-    headers: {'Authorization': `Bearer ${window.localStorage.getItem('refreshToken')}`}
-  })
-    .then(response => {
-      console.log(response.data)
+  console.log("Refreshing access token...");
+  api
+    .post("/auth/refresh", {
+      headers: { Authorization: `Bearer ${window.localStorage.getItem("refreshToken")}` },
+    })
+    .then((response) => {
+      console.log(response.data);
       let { access_token } = response.data;
-      window.localStorage.setItem('accessToken', access_token);
-      console.log('Access token refreshed successfully!');
+      window.localStorage.setItem("accessToken", access_token);
+      console.log("Access token refreshed successfully!");
       return access_token;
     })
-    .catch(error => {
+    .catch((error) => {
       console.log(error);
-    });  
+    });
 }
-
 
 // api.interceptors.request.use((config) => {
 //   if (openPaths.some(path => config.url.includes(path))) {
@@ -58,7 +56,6 @@ function refreshAccessToken() {
 //   return Promise.reject(error);
 // });
 
-
 // api.interceptors.response.use((response) => {
 //   return response;
 // },(error) => {
@@ -82,6 +79,5 @@ function refreshAccessToken() {
 //   }
 //   return Promise.reject(error);
 // });
-
 
 export default api;

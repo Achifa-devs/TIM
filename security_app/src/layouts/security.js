@@ -1,13 +1,7 @@
-import React, { useEffect } from 'react'
-import Aside from '../components/Security/Aside/Aside'
-import { setInfoTo } from '../redux/security/info'
-import {useDispatch, useSelector} from 'react-redux';
-import api from '../services/api';
+import React from "react";
+import Aside from "../components/Security/Aside/Aside";
 
-export default function SecurityLayout({children}) {
-
-  let dispatch = useDispatch()
-
+export default function SecurityLayout({ children }) {
   // function fetchUserData() {
   //   api.post('/auth', {token: window.localStorage.getItem('accessToken')})
   //   .then((response) => {
@@ -16,7 +10,7 @@ export default function SecurityLayout({children}) {
   //   })
   //   .catch(err => {
   //     console.log(err)
-        
+
   //   })
   // }
 
@@ -36,11 +30,8 @@ export default function SecurityLayout({children}) {
 
   return (
     <>
-
       <Aside />
-      {
-        children
-      }
+      {children}
     </>
-  )
+  );
 }
