@@ -1,0 +1,68 @@
+name: Deploy Crime-Detect Frontend
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: security_app/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cd security_app
+          npm install
+
+      - name: Build React app
+        run: |
+          cd security_app
+          npm run build
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{SERVER_IP}} >> ~/.ssh/known_hosts
+
+      - name: Deploy to Digital Ocean Droplet
+        run: |
+          # Create deployment archive
+          cd security_app
+          tar -czf ../build.tar.gz -C build .
+
+          # Copy build files to droplet
+          scp -i ~/.ssh/id_rsa ../build.tar.gz ${{SERVER_USER}}@${{SERVER_IP}}:/tmp/
+
+          # Extract and deploy on droplet
+          ssh -i ~/.ssh/id_rsa ${{SERVER_USER}}@${{SERVER_IP}} <<'EOF'
+            set -e
+            
+            # Backup current files (optional)
+            if [ "$(ls -A /var/www/html 2>/dev/null)" ]; then
+              mkdir -p ~/backups
+              tar -czf ~/backups/backup_$(date +%Y%m%d_%H%M%S).tar.gz -C /var/www/html .
+              echo "Backup created in ~/backups/"
+            fi
+            
+            # Clear current html directory
+            rm -rf /var/www/html/*
+            
+            # Extract new build directly to html root
+            cd /var/www/html
+            tar -xzf /tmp/build.tar.gz
+            
+            # Clean up
+            rm /tmp/build.tar.gz
+            
+            echo "Deployment completed successfully!"
+            echo "Files deployed to /var/www/html"
+          EOF
