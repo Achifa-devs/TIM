@@ -31,7 +31,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{SERVER_IP}} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
       - name: Deploy to Digital Ocean
         run: |
@@ -40,10 +40,10 @@ jobs:
           tar -czf ../build.tar.gz -C build .
 
           # Copy build files to droplet
-          scp -i ~/.ssh/id_rsa ../build.tar.gz ${{SERVER_USER}}@${{SERVER_IP}}:/tmp/
+          scp -i ~/.ssh/id_rsa ../build.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:/tmp/
 
           # Extract and deploy on droplet
-          ssh -i ~/.ssh/id_rsa -vvv ${{SERVER_USER}}@${{SERVER_IP}} <<'EOF'
+          ssh -i ~/.ssh/id_rsa -vvv ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} <<'EOF'
             set -e
             
             # Backup current files (optional)
