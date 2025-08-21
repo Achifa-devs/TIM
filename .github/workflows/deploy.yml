@@ -33,7 +33,7 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{SERVER_IP}} >> ~/.ssh/known_hosts
 
-      - name: Deploy to Digital Ocean Droplet
+      - name: Deploy to Digital Ocean
         run: |
           # Create deployment archive
           cd security_app
