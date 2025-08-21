@@ -43,7 +43,7 @@ jobs:
           scp -i ~/.ssh/id_rsa ../build.tar.gz ${{SERVER_USER}}@${{SERVER_IP}}:/tmp/
 
           # Extract and deploy on droplet
-          ssh -i ~/.ssh/id_rsa ${{SERVER_USER}}@${{SERVER_IP}} <<'EOF'
+          ssh -i ~/.ssh/id_rsa -vvv ${{SERVER_USER}}@${{SERVER_IP}} <<'EOF'
             set -e
             
             # Backup current files (optional)
