@@ -25,14 +25,14 @@ const Login = () => {
       e.target.disabled = true;
 
       api
-        .post("/login", { email, password })
+        .post("https://api.sinmfuoyeplatform.com.ng/api/v1/auth/login", { email, password })
         .then((response) => {
           setTimeout(() => {
             window.location.href = "/";
           }, 100000000000000000000000000);
 
           console.log("...", response.data);
-          if (response.data.bool) {
+          if (response.data.success) {
             window.localStorage.setItem("accessToken", response.data.access_token);
             window.localStorage.setItem("refreshToken", response.data.refresh_token);
             window.location.href = "/";

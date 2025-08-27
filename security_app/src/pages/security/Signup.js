@@ -3,11 +3,12 @@ import { useRef, useState } from "react";
 import "../../globals.css";
 import api from "../../services/api";
 const Signup = () => {
-  let [fname, setFname] = useState("");
-  let [lname, setLname] = useState("");
+  let [firstname, setFirstname] = useState("");
+  let [lastname, setLastname] = useState("");
   let [email, setEmail] = useState("");
   let [phone, setPhone] = useState("");
   let [password, setpassword] = useState("");
+  let [role, setRole] = useState('user');
   let [photo, setphoto] = useState();
   let [photo_validate, setphoto_validate] = useState();
 
@@ -15,11 +16,11 @@ const Signup = () => {
   let [btn, setBtn] = useState("Signup");
 
   let book = useRef({
-    fname: false,
-    lname: false,
+    firstname: false,
+    lastname: false,
     email: false,
     password: false,
-    phn: false,
+    phone: false,
   });
 
   function addErrMssg(err, pElem) {
@@ -72,33 +73,25 @@ const Signup = () => {
       // e.currentTarget.disabled = true;
       try {
         api
-          .post("/signup", { fname, lname, email, phone, password })
+          .post("https://api.sinmfuoyeplatform.com.ng/api/v1/auth/signup", { firstname, lastname, email, phone, password, role })
           .then((response) => {
             console.log("...", response);
-            if (response.data.bool) {
+            if (response.data.success) {
               // window.localStorage.setItem('accessToken', response.data.access_token)
               // After Signup, redirect to login page
               window.location.href = "/login";
             } else {
-              if (response.data.data === "duplicate email") {
-                console.log(response.data);
-
-                addErrMssg(
-                  [{ mssg: "Email already exist, please try something else" }],
-                  document.querySelector(".email").parentElement
-                );
-              } else if (response.data === "duplicate phone") {
-                addErrMssg(
-                  [{ mssg: "Phone Number already exist, please try something else" }],
-                  document.querySelector(".phone").parentElement
-                );
-              }
-              setBtn("Signup");
-              e.target.disabled = false;
+              alert('internal server error')
             }
           })
           .catch((err) => {
-            console.log(err);
+            console.log(err.response.data);
+            if (err.response.data.detail) {
+              alert(err.response.data.detail[0].msg)
+            } else {
+              alert(err.response.data.error)
+            }
+
           });
       } catch (err) {
         // let overlay = document.querySelector('.overlay')
@@ -131,7 +124,7 @@ const Signup = () => {
 
     inputs.map(async (item) => {
       if (item.type === "text") {
-        if (item.name === "fname") {
+        if (item.name === "firstname") {
           let empty =
             item.value !== "" ? { bool: true, mssg: "" } : { bool: false, mssg: "Please field cannot be empty" };
           let length =
@@ -149,8 +142,8 @@ const Signup = () => {
           );
           let list = errs.filter((item) => item.mssg !== "");
 
-          list.length > 0 ? (book.current.fname = false) : (book.current.fname = true);
-        } else if (item.name === "lname") {
+          list.length > 0 ? (book.current.firstname = false) : (book.current.firstname = true);
+        } else if (item.name === "lastname") {
           let empty =
             item.value !== "" ? { bool: true, mssg: "" } : { bool: false, mssg: "Please field cannot be empty" };
           let length =
@@ -169,7 +162,7 @@ const Signup = () => {
           );
           let list = errs.filter((item) => item.mssg !== "");
 
-          list.length > 0 ? (book.current.lname = false) : (book.current.lname = true);
+          list.length > 0 ? (book.current.lastname = false) : (book.current.lastname = true);
         } else if (item.name === "email") {
           // let emailvailidity = await checkEmailDuplicate();
           var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -221,64 +214,11 @@ const Signup = () => {
 
           let list = errs.filter((item) => item.mssg !== "");
 
-          list.length > 0 ? (book.current.phn = false) : (book.current.phn = true);
+          list.length > 0 ? (book.current.phone = false) : (book.current.phone = true);
         }
       }
     });
   }
-
-  let handleRemove = (e) => {
-    let img_holder = document.querySelector(".img-cnt");
-    img_holder.querySelector("img").remove();
-
-    let label = document.querySelector(".label");
-    let remove = document.querySelector(".remove");
-
-    label.removeAttribute("id");
-    remove.removeAttribute("id");
-
-    let img_info = document.querySelector(".img-info");
-    let info_size = img_info.children[0].children[1];
-    let info_name = img_info.children[0].children[2];
-
-    info_name.innerHTML = `File Name: Awaiting Upload`;
-    info_size.innerHTML = `File Size: Awaiting Upload`;
-    setphoto_validate(false);
-    document.querySelector("#file").value = "";
-  };
-
-  let handleImage = () => {
-    let f = document.querySelector("#file");
-
-    let reader = new FileReader();
-
-    reader.onload = (result) => {
-      //document.querySelector(".img-cnt").querySelector('label').style.display = 'none';
-
-      let label = document.querySelector(".label");
-      let remove = document.querySelector(".remove");
-
-      label.setAttribute("id", "inactive");
-      remove.setAttribute("id", "active");
-
-      let name = [...f.files][0].name;
-      let size = [...f.files][0].size;
-
-      let img_info = document.querySelector(".img-info");
-      let info_size = img_info.children[0].children[1];
-      let info_name = img_info.children[0].children[2];
-
-      info_name.innerHTML = `File Name: ${name}`;
-      info_size.innerHTML = `File Size: ${(size / 1024 ** 2).toFixed(2)}MB`;
-
-      setphoto(reader.result);
-      setphoto_validate(true);
-
-      let img = `<img src=${reader.result} style='height: 100%; width: 100%; margin: 20px 0 20px 0' alt='' />`;
-      document.querySelector(".img-cnt-h").insertAdjacentHTML("afterbegin", img);
-    };
-    reader.readAsDataURL([...f.files][0]);
-  };
 
   return (
     <>
@@ -304,12 +244,14 @@ const Signup = () => {
             SignUp Form For Securiy
           </h4>
 
+          
+
           <div>
             <div className="input-cnt">
-              <input name="fname" onInput={(e) => setFname(e.target.value)} type="text" placeholder="FirstName" />
+              <input name="firstname" onInput={(e) => setFirstname(e.target.value)} type="text" placeholder="FirstName" />
             </div>
             <div className="input-cnt">
-              <input name="lname" onInput={(e) => setLname(e.target.value)} type="text" placeholder="LastName" />
+              <input name="lastname" onInput={(e) => setLastname(e.target.value)} type="text" placeholder="LastName" />
             </div>
             <div className="input-cnt">
               <input

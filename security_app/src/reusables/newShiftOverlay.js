@@ -1,14 +1,14 @@
 /* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import { useSelector } from "react-redux";
 
 export default function AddShiftOverlay({ users }) {
   //    let [period,setPeriod] = useState('morning')
   //    let [duration,setDuration] = useState('2')
-  let [shift_name, set_shift_name] = useState("");
   let [start_time, set_start_time] = useState("00:00");
   let [end_time, set_end_time] = useState("00:00");
-  let [personnel_id, set_personnel_id] = useState(null);
+  let {info} = useSelector(s=> s.info)
 
   // Function to calculate the shift name based on start and end times
   function getShiftName(startTime, endTime) {
@@ -40,13 +40,12 @@ export default function AddShiftOverlay({ users }) {
 
   function uploadShift() {
     const calculatedShiftName = getShiftName(start_time, end_time);
-    set_shift_name(calculatedShiftName);
 
     api
-      .post("/admin/new-shift", { shift_name: calculatedShiftName, start_time, end_time, personnel_id })
+      .post("https://api.sinmfuoyeplatform.com.ng/api/v1/shifts", { name: calculatedShiftName, start_time, end_time, id: info?.id })
       .then((response) => {
         // console.log('...',response)
-        if (response.data) {
+        if (response.data) { 
           window.localStorage.setItem("accessToken", response.data.access_token);
 
           alert("Shift Created");
@@ -137,20 +136,18 @@ export default function AddShiftOverlay({ users }) {
 
           <div className="input-cnt">
             <select
-              onInput={(e) => {
-                set_personnel_id(e.target.value);
-              }}
+              
               name=""
               id=""
             >
               <option value="">Select Security</option>
-              {users.map((item, index) => {
+              {/* {users.map((item, index) => {
                 return (
                   <option key={index} value={item?.id}>
                     {`${index + 1}.  ${item?.first_name} ${item?.last_name}`}
                   </option>
                 );
-              })}
+              })} */}
             </select>
           </div>
         </section>

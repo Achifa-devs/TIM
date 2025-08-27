@@ -5,6 +5,7 @@ import '../../components/Security/Shift/styles/xxl.css'
 import Body from '../../components/Security/Shift/Body'
 import api from '../../services/api'
 import { useSelector } from 'react-redux'
+import AddShiftOverlay from '../../reusables/newShiftOverlay'
 
 export default function Shift() {
   let [shiftList, setShiftList] = useState([])
@@ -12,8 +13,8 @@ export default function Shift() {
   useEffect(() => {
     // function fetchUserData() {
      if (info !== null) {
-       api.get('/shift', {params: {
-         security_id: info?.security_id
+       api.get('https://api.sinmfuoyeplatform.com.ng/api/v1/shifts', {params: {
+         security_id: info?.id
        }})
        .then((response) => {
          setShiftList(response.data)
@@ -28,10 +29,13 @@ export default function Shift() {
   }, [info])
   return (
     <>
-      <SecurityLayout>     
-
+      <SecurityLayout>  
+        <div className="shift-overlay" style={{alignItems: 'center', justifyContent: 'center'}}>
+          <AddShiftOverlay />
+        </div>
         <div className="shift">
           <Summary />
+          
           <Body shifts={shiftList} />
         </div>
 

@@ -6,57 +6,96 @@ export default function Body() {
   const [btntxt, setbtntxt] = useState("Upload video");
   const [imageURL, setImageURL] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [stream, setStream] = useState(null);
+  const [result, setResult] = useState(null);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
+  function loaderSwitch(params) {
+    let elem = document.querySelector('.loader-overlay');
+    if(elem.hasAttribute('id')){
+      elem.removeAttribute('id')
+    }else{
+      elem.setAttribute('id', 'loader-overlay')
+    }
+  }
+
   // Function to handle video upload
   function uploadVideo(e) {
     let file = e.target.files[0];
-    console.log("Handling video upload");
-    setbtntxt("Uploading...");
 
-    // Access the file and start the file reader stream
-    setTimeout(() => {
-      const reader = new FileReader();
-      setbtntxt("Processing...");
-      reader.onload = (e) => {
-        setVideoURL(reader.result);
-        console.log("setVideoURL");
-      };
-      reader.readAsDataURL(file);
-    }, 5000);
-    setbtntxt("Upload Video");
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+      setImageURL(e.target.result)
+    }
+
+    reader.readAsDataURL(file); 
+
+    loaderSwitch();
+    // Create FormData
+    let formData = new FormData();
+    formData.append("file", file); // "video" must match backend field name
+
+    api.post('https://api.sinmfuoyeplatform.com.ng/api/v1/detect/video', formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        "Authorization": `Bearer ${window.localStorage.getItem("accessToken")}`
+      }
+    })
+    .then((response) => {
+      setResult(response?.data)
+      console.log("Upload success:", response.data.violence_detected);
+      loaderSwitch()
+      const isViolent = response.data.violence_detected ? 'Violence Detected' : 'No Violence Detected'
+      alert(isViolent)
+    })
+    .catch(err => {
+      loaderSwitch()
+      alert('Internal server error')
+      console.error("Upload failed:", err);
+    });
   }
+
+  function uploadImage(e) {
+    let file = e.target.files[0];
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+      setImageURL(e.target.result)
+    }
+
+    reader.readAsDataURL(file); 
+
+    loaderSwitch()
+    // Create FormData
+    let formData = new FormData();
+    formData.append("file", file); // "video" must match backend field name
+
+    api.post('https://api.sinmfuoyeplatform.com.ng/api/v1/detect/image', formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        "Authorization": `Bearer ${window.localStorage.getItem("accessToken")}`
+      }
+    })
+    .then((response) => {
+      setResult(response?.data)
+      console.log("Upload success:", response.data.violence_detected);
+      loaderSwitch()
+      const isViolent = response.data.violence_detected ? 'Violence Detected' : 'No Violence Detected'
+      alert(isViolent)
+    })
+    .catch(err => {
+      loaderSwitch()
+      alert('Internal server error')
+      console.error("Upload failed:", err);
+    });
+  }
+
 
   // Constraints for accessing the camera
   const constraint = { video: true };
-
-  // Start the live camera feed
-  function startLiveCam(e) {
-    console.log("startLiveCam");
-    setIsRecording(true); // Set recording state to true
-    navigator.mediaDevices
-      .getUserMedia(constraint)
-      .then((stream) => {
-        setStream(stream);
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      })
-      .catch((err) => {
-        console.error("Error accessing camera: ", err);
-      });
-  }
-
-  // Stop the live camera feed
-  function stopLiveCam() {
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop()); // Stop each track (audio, video)
-      setStream(null); // Clear the stream state
-      setIsRecording(false); // Set recording state to false
-    }
-  }
 
   // Capture frames from the live video stream/upload and send to backend
   function captureFrame(from) {
@@ -121,9 +160,18 @@ export default function Body() {
               accept="video/*"
               style={{ display: "none" }}
               type="file"
-              name="file"
-              id="file"
+              name="video"
+              id="video"
             />
+            <input
+              onChange={uploadImage}
+              accept="image/*"
+              style={{ display: "none" }}
+              type="file"
+              name="image"
+              id="image"
+            />
+
           </div>
           <div className="live-feed">
             {(videoURL || isRecording) && (
@@ -138,16 +186,28 @@ export default function Body() {
             )}
           </div>
           <canvas ref={canvasRef} style={{ display: "none" }}></canvas>
+          
+          <div className="btn-cnt">
+            <label htmlFor="video">Upload Video</label>
+            <label htmlFor="image">Upload Image</label>
+
+            {/* <button onClick={startLiveCam} hidden={isRecording} disabled={isRecording}>
+              Start Live Monitoring
+            </button>
+            <button onClick={stopLiveCam} hidden={!isRecording} disabled={!isRecording}>
+              Stop Live Monitoring
+            </button> */}
+          </div>
           {imageURL && (
             <div className="side-by-side-container" style={{ display: "flex", justifyContent: "space-between" }}>
-              <div className="original-frame">
-                <h3>Original Frame</h3>
+              {/* <div className="original-frame"> */}
+                {/* <h3>Original Frame</h3> */}
                 {/* canvas for frame capturing (shown when imageURL is available) */}
-                <canvas ref={canvasRef} style={{ border: "1px solid black", width: "100%", height: "auto" }}></canvas>
-              </div>
+                {/* <canvas ref={canvasRef} style={{ border: "1px solid black", width: "100%", height: "auto" }}></canvas> */}
+              {/* </div> */}
 
-              <div className="processed-image">
-                <h3>Processed Image</h3>
+              <div className="processed-image" style={{width: "100%", height: "90%", marginTop: "20px"}}>
+                {/* <h3>Processed Image</h3> */}
                 <img
                   src={imageURL}
                   className="feed"
@@ -157,16 +217,27 @@ export default function Body() {
               </div>
             </div>
           )}
-          <div className="btn-cnt">
-            <label htmlFor="file">{btntxt}</label>
-            <button onClick={startLiveCam} hidden={isRecording} disabled={isRecording}>
-              Start Live Monitoring
-            </button>
-            <button onClick={stopLiveCam} hidden={!isRecording} disabled={!isRecording}>
-              Stop Live Monitoring
-            </button>
-          </div>
           {/* canvas for frame capturing */}
+        </section>
+
+        <section className="result-cnt" style={{
+          width: '45%', 
+          display: 'flex',
+          alignTtems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column'
+        }}>
+          
+          <p>Frame: <b>{result?.frame}</b></p>
+          <p>Violence detected: <b>{result?.violence_detected ? 'Yes' : 'No'}</b></p>
+          <p>Confidence: <b>{result?.confidence}</b></p>
+          <div>Detections:  
+            <b>
+              {
+                result?.detections?.length > 0 ? result?.detections?.map(item => <p>{item}</p>) : 'No detections'
+              }
+            </b>
+          </div>
         </section>
       </section>
     </div>

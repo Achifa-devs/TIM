@@ -1,9 +1,10 @@
 /* eslint-disable no-unused-vars */
 import React from "react";
-// import AddShiftOverlay from '../../../reusables/newShiftOverlay'
+import AddShiftOverlay from '../../../reusables/newShiftOverlay'
 
 export default function Summary() {
   function handleShift() {
+    // alert('')
     let e = document.querySelector(".shift-overlay");
     if (e.hasAttribute("id")) {
       e.removeAttribute("id");
@@ -20,12 +21,14 @@ export default function Summary() {
   }
   return (
     <>
+
+
       <div className="shift-summary">
         <section>
           <small>
             <b>Add Your Shift For Approval From Admin</b>
           </small>
-          <button disabled onClick={(e) => handleShift()} style={{ width: "auto", height: "auto", padding: "5px" }}>
+          <button onClick={(e) => handleShift()} style={{ width: "auto", height: "auto", padding: "5px" }}>
             <small>
               <b>Add Shift + </b>
             </small>

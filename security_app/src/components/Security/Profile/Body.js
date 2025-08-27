@@ -15,7 +15,7 @@ export default function Body({info}) {
                     &nbsp;
 
                     <div>
-                        <small>{info?.fname}</small>
+                        <small>{info?.firstname}</small>
                     </div>
                 </section>
 
@@ -31,7 +31,7 @@ export default function Body({info}) {
                     &nbsp;
 
                     <div>
-                        <small>{info?.lname}</small>
+                        <small>{info?.lastname}</small>
                     </div>
                 </section>
 

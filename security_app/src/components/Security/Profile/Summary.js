@@ -38,7 +38,7 @@ export default function Summary({ info }) {
             </div>
             <div>
               <small style={{ fontWeight: "400" }}>
-                <>ID : TIM-{info?.security_id}</>
+                <>ID : TIM-{info?.id}</>
               </small>
             </div>
           </section>
