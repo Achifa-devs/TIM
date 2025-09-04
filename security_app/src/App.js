@@ -33,6 +33,8 @@ function App() {
     }
   };
 
+  console.log("active routes", activeRoutes);
+
   useEffect(() => {
     generateRoutes(role);
   }, []);
