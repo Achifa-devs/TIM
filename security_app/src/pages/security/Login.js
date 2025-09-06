@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import "../../globals.css";
 
 import api from "../../services/api";
+import Loader from "../../reusables/loader";
 
 const Login = () => {
   let [btn, setBtn] = useState("Login");
@@ -21,15 +22,15 @@ const Login = () => {
 
     Validation();
     if (validation.current) {
-      setBtn(<div className="Authloader" style={{ background: "#fff" }}></div>);
-      e.target.disabled = true;
+      loaderSwitch()
+      // setBtn(<div className="Authloader" style={{ background: "#fff" }}></div>);
+      // e.target.disabled = true;
 
       api
         .post("https://api.sinmfuoyeplatform.com.ng/api/v1/auth/login", { email, password })
         .then((response) => {
-          setTimeout(() => {
-            window.location.href = "/";
-          }, 100000000000000000000000000);
+          loaderSwitch()
+         
 
           console.log("...", response.data);
           if (response.data.success) {
@@ -37,32 +38,45 @@ const Login = () => {
             window.localStorage.setItem("refreshToken", response.data.refresh_token);
             window.location.href = "/";
           } else {
-            let check = document.querySelector(".err-cnt").querySelector(".err-mssg");
-            if (check) {
-              document.querySelector(".err-cnt").querySelector(".err-mssg").remove();
-              let div = document.createElement("div");
-              div.className = "err-mssg";
-              div.style.display = "table";
-              div.style.margin = "0 auto";
-              div.innerHTML = "Invalid Credentials";
-              document.querySelector(".err-cnt").append(div);
-            } else {
-              let div = document.createElement("div");
-              div.className = "err-mssg";
-              div.style.display = "table";
-              div.style.margin = "0 auto";
-              div.innerHTML = "Invalid Credentials";
-              document.querySelector(".err-cnt").append(div);
-            }
-            e.target.disabled = false;
-            setBtn("Login");
+            errFunc('')
+            // e.target.disabled = false;
+            // setBtn("Login");
           }
         })
         .catch((err) => {
-          console.log(err);
+          loaderSwitch()
+          console.log(err)
+          const e = err.response.data;
+          if(e.error){
+            errFunc(e.error)
+          }else{
+            errFunc(e.detail[0].msg)
+          }
         });
     }
   };
+
+
+  function errFunc(errMsg) {
+    alert(`${errMsg}`)
+    let check = document.querySelector(".err-cnt").querySelector(".err-mssg");
+    if (check) {
+      document.querySelector(".err-cnt").querySelector(".err-mssg").remove();
+      let div = document.createElement("div");
+      div.className = "err-mssg";
+      div.style.display = "table";
+      div.style.margin = "0 auto";
+      div.innerHTML = errMsg;
+      document.querySelector(".err-cnt").append(div);
+    } else {
+      let div = document.createElement("div");
+      div.className = "err-mssg";
+      div.style.display = "table";
+      div.style.margin = "0 auto";
+      div.innerHTML = errMsg;
+      document.querySelector(".err-cnt").append(div);
+    }
+  }
 
   function Validation() {
     let inputs = [...document.querySelectorAll("input")];
@@ -142,8 +156,18 @@ const Login = () => {
     });
   }
 
+  function loaderSwitch(params) {
+    let elem = document.querySelector('.loader-overlay');
+    if(elem.hasAttribute('id')){
+      elem.removeAttribute('id')
+    }else{
+      elem.setAttribute('id', 'loader-overlay')
+    }
+  }
+
   return (
     <>
+      <Loader />
       <div className="form" action="">
         <section className="last-child"></section>
 

@@ -29,12 +29,12 @@ export default function SecurityLayout({ children }) {
     if(window.location.pathname.split('/').splice(-1)[0] !== 'login' && window.location.pathname.split('/').splice(-1)[0] !== 'signup'){
       // alert()
       let invalid = [null, undefined, '', 'null', 'undefined'];
-      if(token.includes[invalid]){
+      if(token?.includes[invalid]){
         window.location.href='/login' 
 
       }else{
         // alert(token)
-        fetchUserData(token.trim())
+        fetchUserData(token?.trim())
 
       }
       

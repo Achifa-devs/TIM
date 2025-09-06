@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import "../../globals.css";
 import api from "../../services/api";
+import Loader from "../../reusables/loader";
 const Signup = () => {
   let [firstname, setFirstname] = useState("");
   let [lastname, setLastname] = useState("");
@@ -68,14 +69,15 @@ const Signup = () => {
       : (validation.current = true);
 
     if (validation.current) {
-      // overlay.setAttribute('id', 'overlay');
-      setBtn(<div className="Authloader" style={{ background: "#fff", border: "1px solid orangered" }}></div>);
-      // e.currentTarget.disabled = true;
+      loaderSwitch()
+
       try {
         api
           .post("https://api.sinmfuoyeplatform.com.ng/api/v1/auth/signup", { firstname, lastname, email, phone, password, role })
           .then((response) => {
             console.log("...", response);
+            loaderSwitch()
+
             if (response.data.success) {
               // window.localStorage.setItem('accessToken', response.data.access_token)
               // After Signup, redirect to login page
@@ -85,6 +87,8 @@ const Signup = () => {
             }
           })
           .catch((err) => {
+            loaderSwitch()
+
             console.log(err.response.data);
             if (err.response.data.detail) {
               alert(err.response.data.detail[0].msg)
@@ -220,8 +224,18 @@ const Signup = () => {
     });
   }
 
+  function loaderSwitch(params) {
+    let elem = document.querySelector('.loader-overlay');
+    if(elem.hasAttribute('id')){
+      elem.removeAttribute('id')
+    }else{
+      elem.setAttribute('id', 'loader-overlay')
+    }
+  }
+
   return (
     <>
+      <Loader />
       <div className="form" action="">
         <section className="last-child"></section>
 
